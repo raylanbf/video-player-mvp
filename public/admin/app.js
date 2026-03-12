@@ -162,9 +162,13 @@ async function loadQuestions() {
     tbody.innerHTML = '';
     
     questions.forEach(q => {
+        const m = Math.floor(q.minuto_disparo);
+        const s = Math.round((q.minuto_disparo - m) * 60).toString().padStart(2, '0');
+        const formattedTime = `${m}:${s}`;
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${q.minuto_disparo}</td>
+            <td>${formattedTime}</td>
             <td>${q.enunciado}</td>
             <td>
                 <!-- No edit logic for MVP simplicity, just delete and recreate to save time, or we can easily map fields -->
@@ -190,9 +194,13 @@ document.getElementById('question-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     
     const id = document.getElementById('q-id').value;
+    const timeValue = document.getElementById('q-minuto').value;
+    const timeparts = timeValue.split(':');
+    const decimalMinutes = parseInt(timeparts[0], 10) + (parseInt(timeparts[1], 10) / 60);
+
     const payload = {
         video_id: currentVideoId,
-        minuto_disparo: parseFloat(document.getElementById('q-minuto').value),
+        minuto_disparo: decimalMinutes,
         enunciado: document.getElementById('q-enunciado').value,
         alternativa_a: document.getElementById('q-alta').value,
         alternativa_b: document.getElementById('q-altb').value,
@@ -232,8 +240,11 @@ window.editQuestion = async (id) => {
     const questions = await res.json();
     const q = questions.find(x => x.id === id);
     if(q) {
+        const m = Math.floor(q.minuto_disparo);
+        const s = Math.round((q.minuto_disparo - m) * 60).toString().padStart(2, '0');
+        
         document.getElementById('q-id').value = q.id;
-        document.getElementById('q-minuto').value = q.minuto_disparo;
+        document.getElementById('q-minuto').value = `${m}:${s}`;
         document.getElementById('q-enunciado').value = q.enunciado;
         document.getElementById('q-alta').value = q.alternativa_a;
         document.getElementById('q-altb').value = q.alternativa_b;

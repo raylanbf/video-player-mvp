@@ -111,8 +111,8 @@
                         <input type="hidden" id="q-id">
                         <div class="form-row">
                             <div class="form-group" style="flex: 0.3;">
-                                <label>Minuto Disparo</label>
-                                <input type="number" step="0.1" id="q-minuto" class="form-control" required>
+                                <label>Tempo (MM:SS)</label>
+                                <input type="text" id="q-minuto" class="form-control" placeholder="01:29" pattern="^([0-9]+):([0-5][0-9])$" title="Formato em minutos e segundos, ex: 01:29" required>
                             </div>
                             <div class="form-group">
                                 <label>Enunciado</label>

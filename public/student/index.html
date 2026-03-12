@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aluno - VideoPlayer MVP</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="student-body">
+
+    <header class="player-header">
+        <div>
+            <h2 id="video-title">Carregando...</h2>
+            <p id="video-desc" style="color: #9CA3AF; font-size: 0.9rem;"></p>
+        </div>
+        <a href="/" class="btn btn-secondary btn-small">Sair</a>
+    </header>
+
+    <main class="player-container" oncontextmenu="return false;">
+        
+        <div class="video-wrapper">
+            <!-- Native HTML5 Video with Security Attributes -->
+            <video id="video-player" controls preload="auto" controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture>
+                Seu navegador não suporta HTML5 video.
+            </video>
+        </div>
+
+        <!-- Question Modal -->
+        <div id="question-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h3 id="q-enunciado"></h3>
+                <div class="options-list" id="q-options">
+                    <!-- Loaded dynamically -->
+                </div>
+                <div id="q-feedback" class="feedback-msg hidden"></div>
+                <button id="q-continue-btn" class="btn hidden" style="margin-top: 1rem; width: 100%;">Continuar Vídeo</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="/student/player.js"></script>
+</body>
+</html>

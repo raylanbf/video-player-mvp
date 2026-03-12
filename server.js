@@ -1,0 +1,237 @@
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require('body-parser');
+const path = require('path');
+const cors = require('cors');
+
+const app = express();
+const PORT = 3000;
+
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Database connection
+const db = new sqlite3.Database('./database.sqlite');
+
+// --- API ROUTES ---
+
+// Admin: Login (fake auth for MVP)
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND role = "admin"', [username, password], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (user) {
+      res.json({ success: true, token: 'fake-admin-token' });
+    } else {
+      res.status(401).json({ success: false, message: 'Credenciais inválidas' });
+    }
+  });
+});
+
+// Admin: List Videos
+app.get('/api/videos', (req, res) => {
+  db.all('SELECT * FROM videos', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Admin: Get Video Form Details
+app.get('/api/videos/:id', (req, res) => {
+  db.get('SELECT * FROM videos WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(row);
+  });
+});
+
+// Admin: Create Video
+app.post('/api/videos', (req, res) => {
+  const { title, description, video_url, duration, status } = req.body;
+  if (!title || !video_url) return res.status(400).json({ error: 'Título e URL são obrigatórios' });
+
+  const stmt = db.prepare('INSERT INTO videos (title, description, video_url, duration, status) VALUES (?, ?, ?, ?, ?)');
+  stmt.run([title, description, video_url, duration, status || 'ativo'], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID });
+  });
+  stmt.finalize();
+});
+
+// Admin: Update Video
+app.put('/api/videos/:id', (req, res) => {
+  const { title, description, video_url, duration, status } = req.body;
+  const stmt = db.prepare('UPDATE videos SET title = ?, description = ?, video_url = ?, duration = ?, status = ? WHERE id = ?');
+  stmt.run([title, description, video_url, duration, status, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+  stmt.finalize();
+});
+
+// Admin: Delete Video
+app.delete('/api/videos/:id', (req, res) => {
+  db.run('DELETE FROM videos WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+// Admin: List Questions for Video
+app.get('/api/videos/:videoId/questions', (req, res) => {
+  db.all('SELECT * FROM questions WHERE video_id = ? ORDER BY minuto_disparo ASC', [req.params.videoId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Admin: Create Question
+app.post('/api/questions', (req, res) => {
+  const { video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo } = req.body;
+  
+  if (!video_id || minuto_disparo == null || !enunciado || !alternativa_correta) {
+    return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+  }
+
+  // MVP: Validate Duplicate Time (basic)
+  db.get('SELECT id FROM questions WHERE video_id = ? AND minuto_disparo = ?', [video_id, minuto_disparo], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (row) return res.status(400).json({ error: 'Já existe uma pergunta neste minuto disparador.' });
+    
+    const stmt = db.prepare(`INSERT INTO questions 
+      (video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      
+    stmt.run([video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo || 'ativo'], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+    stmt.finalize();
+  });
+});
+
+// Admin: Update Question
+app.put('/api/questions/:id', (req, res) => {
+  const { video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo } = req.body;
+  
+  const stmt = db.prepare(`UPDATE questions SET 
+    video_id = ?, minuto_disparo = ?, enunciado = ?, alternativa_a = ?, alternativa_b = ?, alternativa_c = ?, alternativa_d = ?, alternativa_correta = ?, feedback_correto = ?, feedback_errado = ?, ativo = ? 
+    WHERE id = ?`);
+    
+  stmt.run([video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+  stmt.finalize();
+});
+
+// Admin: Delete Question
+app.delete('/api/questions/:id', (req, res) => {
+  db.run('DELETE FROM questions WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+
+// --- STUDENT ROUTES ---
+
+// Student: Get video and associated questions
+app.get('/api/student/video/:id', (req, res) => {
+  db.get('SELECT * FROM videos WHERE id = ? AND status = "ativo"', [req.params.id], (err, video) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!video) return res.status(404).json({ error: 'Vídeo não encontrado ou inativo' });
+    
+    db.all('SELECT * FROM questions WHERE video_id = ? AND ativo = "ativo" ORDER BY minuto_disparo ASC', [req.params.id], (err, questions) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      // Filter answer data so student can't see the correct answer from API
+      const safeQuestions = questions.map(q => ({
+        id: q.id,
+        minuto_disparo: q.minuto_disparo,
+        enunciado: q.enunciado,
+        alternativa_a: q.alternativa_a,
+        alternativa_b: q.alternativa_b,
+        alternativa_c: q.alternativa_c,
+        alternativa_d: q.alternativa_d
+      }));
+      
+      res.json({ video, questions: safeQuestions });
+    });
+  });
+});
+
+// Student: Get user progress
+app.get('/api/student/progress/:userId/:videoId', (req, res) => {
+  const { userId, videoId } = req.params;
+  db.get('SELECT * FROM progress WHERE user_id = ? AND video_id = ?', [userId, videoId], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) {
+      return res.json({ current_time: 0, ultima_pergunta_respondida: 0, concluido: false });
+    }
+    
+    // Get answered questions IDs
+    db.all('SELECT question_id FROM answers WHERE user_id = ? AND video_id = ? AND acertou = 1', [userId, videoId], (err, answers) => {
+      if (err) return res.status(500).json({ error: err.message });
+      const answered_questions = answers.map(a => a.question_id);
+      res.json({ ...row, answered_questions });
+    });
+  });
+});
+
+// Student: Save progress
+app.post('/api/student/progress', (req, res) => {
+  const { user_id, video_id, current_time, ultima_pergunta_respondida, concluido } = req.body;
+  if (!user_id || !video_id) return res.status(400).json({ error: 'user_id e video_id obrigatórios' });
+
+  db.get('SELECT id FROM progress WHERE user_id = ? AND video_id = ?', [user_id, video_id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    if (row) {
+      db.run('UPDATE progress SET current_time = ?, ultima_pergunta_respondida = ?, concluido = ? WHERE id = ?', 
+        [current_time, ultima_pergunta_respondida || 0, concluido || 0, row.id], function(updateErr) {
+          if (updateErr) return res.status(500).json({ error: updateErr.message });
+          res.json({ success: true, updated: true });
+      });
+    } else {
+      db.run('INSERT INTO progress (user_id, video_id, current_time, ultima_pergunta_respondida, concluido) VALUES (?, ?, ?, ?, ?)',
+        [user_id, video_id, current_time, ultima_pergunta_respondida || 0, concluido || 0], function(insertErr) {
+          if (insertErr) return res.status(500).json({ error: insertErr.message });
+          res.json({ success: true, inserted: true });
+      });
+    }
+  });
+});
+
+// Student: Submit Answer
+app.post('/api/student/answer', (req, res) => {
+  const { user_id, video_id, question_id, resposta_marcada } = req.body;
+  
+  // Verify with DB directly 
+  db.get('SELECT * FROM questions WHERE id = ?', [question_id], (err, q) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!q) return res.status(404).json({ error: 'Pergunta não encontrada' });
+    
+    const acertou = q.alternativa_correta === resposta_marcada;
+    
+    db.run('INSERT INTO answers (video_id, question_id, user_id, resposta_marcada, acertou) VALUES (?, ?, ?, ?, ?)',
+      [video_id, question_id, user_id, resposta_marcada, acertou ? 1 : 0], function(insertErr) {
+        if (insertErr) return res.status(500).json({ error: insertErr.message });
+        
+        res.json({
+          acertou,
+          feedback_correto: q.feedback_correto,
+          feedback_errado: q.feedback_errado
+        });
+    });
+  });
+});
+
+// 404 Fallback
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

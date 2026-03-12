@@ -3,6 +3,8 @@ const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
 const cors = require('cors');
+const http = require('http');
+const https = require('https');
 
 const app = express();
 const PORT = 3000;
@@ -138,9 +140,13 @@ app.delete('/api/questions/:id', (req, res) => {
 
 // Student: Get video and associated questions
 app.get('/api/student/video/:id', (req, res) => {
-  db.get('SELECT * FROM videos WHERE id = ? AND status = "ativo"', [req.params.id], (err, video) => {
+  db.get('SELECT id, title, description FROM videos WHERE id = ? AND status = "ativo"', [req.params.id], (err, video) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!video) return res.status(404).json({ error: 'Vídeo não encontrado ou inativo' });
+    
+    // Obscuring the real video_url by NOT sending it directly. 
+    // Sending a proxy streaming URL instead.
+    video.video_url = `/api/student/stream/${video.id}`;
     
     db.all('SELECT * FROM questions WHERE video_id = ? AND ativo = "ativo" ORDER BY minuto_disparo ASC', [req.params.id], (err, questions) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -157,6 +163,35 @@ app.get('/api/student/video/:id', (req, res) => {
       }));
       
       res.json({ video, questions: safeQuestions });
+    });
+  });
+});
+
+// Student: Secure Video Streaming Proxy
+app.get('/api/student/stream/:id', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(401).send('Acesso Negado: Token de Segurança Ausente');
+
+  // Verify the video exists and fetch the raw URL
+  db.get('SELECT video_url FROM videos WHERE id = ? AND status = "ativo"', [req.params.id], (err, row) => {
+    if (err || !row) return res.status(404).send('Vídeo não encontrado');
+
+    const videoUrl = row.video_url;
+    const client = videoUrl.startsWith('https') ? https : http;
+
+    const options = { headers: {} };
+    // Forward the Range string to support fast-forwarding/seeking timeline
+    if (req.headers.range) {
+      options.headers.range = req.headers.range;
+    }
+
+    client.get(videoUrl, options, (streamRes) => {
+      // Forward headers like Content-Range, Content-Length, Content-Type to the frontend
+      res.writeHead(streamRes.statusCode, streamRes.headers);
+      streamRes.pipe(res);
+    }).on('error', (e) => {
+      console.error('Streaming proxy error:', e);
+      res.status(500).send('Erro ao buscar a stream de vídeo');
     });
   });
 });

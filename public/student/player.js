@@ -43,11 +43,17 @@ async function init() {
         }
         const data = await res.json();
         
-        videoEl.src = data.video.video_url;
+        // Use a generated session token for the request
+        const securityToken = btoa(userId + '-' + Date.now());
+        videoEl.src = data.video.video_url + '?token=' + securityToken;
+        
         videoTitle.innerText = data.video.title;
         videoDesc.innerText = data.video.description || '';
         
         questions = data.questions || [];
+        
+        // Start Anti-Piracy Watermark
+        startDynamicWatermark(userId);
         
         // Load progress
         await loadProgress();
@@ -258,6 +264,31 @@ document.addEventListener('keydown', (event) => {
 
 // 3. Prevent dragging text or elements
 document.addEventListener('dragstart', event => event.preventDefault());
+
+// 4. Dynamic Watermark
+function startDynamicWatermark(userIdentifier) {
+    const watermark = document.createElement('div');
+    watermark.innerText = `ID do Aluno: ${userIdentifier}\nProtegido por Direitos Autorais`;
+    watermark.style.position = 'absolute';
+    watermark.style.color = 'rgba(255, 255, 255, 0.4)'; // Semitransparent white
+    watermark.style.fontSize = '1.2rem';
+    watermark.style.fontWeight = 'bold';
+    watermark.style.textShadow = '1px 1px 2px black';
+    watermark.style.pointerEvents = 'none'; // so it doesn't block clicks
+    watermark.style.zIndex = '50';
+    watermark.style.userSelect = 'none';
+    
+    document.querySelector('.video-wrapper').appendChild(watermark);
+
+    // Float around to prevent simple cropping or static blur
+    setInterval(() => {
+        const topPos = Math.floor(Math.random() * 80) + 10; // 10% to 90%
+        const leftPos = Math.floor(Math.random() * 80) + 10;
+        watermark.style.top = `${topPos}%`;
+        watermark.style.left = `${leftPos}%`;
+        watermark.style.opacity = Math.random() * (0.6 - 0.2) + 0.2; // pulse opacity
+    }, 5000); // changes position every 5 seconds
+}
 
 // Start
 init();

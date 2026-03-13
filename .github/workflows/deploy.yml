@@ -19,9 +19,14 @@ jobs:
       - name: Preparar pasta de Deploy (dist)
         run: |
           mkdir dist
-          # Copia toda a estrutura do repositório para a disturação final
-          # Ignorando as pastas do próprio git e repositório
-          rsync -av --exclude='.git' --exclude='.github' --exclude='dist' ./ dist/
+          # Copia o conteúdo da pasta public para a raiz do Deploy (para Hostinger)
+          cp -a public/. dist/
+          
+          # Copia a pasta api inteira para dentro do Deploy
+          cp -a api/ dist/api/
+          
+          # Copia também o schema
+          cp schema_completo.sql dist/
 
       - name: Configurar .htaccess para segurança e rotas limpas (Opcional, mas recomendado)
         run: |

@@ -18,8 +18,8 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-    // Return a generic JSON error so the frontend doesn't break parsing HTML
-    echo json_encode(['error' => 'Database connection failed']);
+    // Return the actual error message temporarily to debug
+    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
     exit;
 }
 

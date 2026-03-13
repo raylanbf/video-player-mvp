@@ -17,6 +17,11 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    
+    // Teste de conexão via Navegador
+    if (isset($_GET['test'])) {
+        sendJson(['success' => true, 'message' => 'Conexão com o Banco de Dados realizada com SUCESSO!']);
+    }
 } catch (\PDOException $e) {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()]);

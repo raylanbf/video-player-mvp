@@ -19,14 +19,9 @@ jobs:
       - name: Preparar pasta de Deploy (dist)
         run: |
           mkdir dist
-          # Copia as pastas essenciais para a dist (a public não existe mais, tudo virou raiz)
-          cp -r admin superadmin student embed css js index.html dist/
-          
-          # Copia a pasta api (onde estão todos os endpoints em PHP)
-          cp -r api dist/api
-          
-          # Copia também qualquer outro arquivo da raiz se precisar (ex: schema pra backup)
-          cp schema_completo.sql dist/
+          # Copia toda a estrutura do repositório para a disturação final
+          # Ignorando as pastas do próprio git e repositório
+          rsync -av --exclude='.git' --exclude='.github' --exclude='dist' ./ dist/
 
       - name: Configurar .htaccess para segurança e rotas limpas (Opcional, mas recomendado)
         run: |

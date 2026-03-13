@@ -61,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-// Roteador de Login
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['REQUEST_URI'], '/api/auth.php/login') !== false) {
+// Roteador de Login - Simples POST para o arquivo
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $inputJSON = file_get_contents('php://input');
     $input = json_decode($inputJSON, TRUE);

@@ -20,7 +20,7 @@ async function handleLogin(e) {
     const errorEl = document.getElementById('login-error');
     
     try {
-        const res = await fetch(`${API_BASE}/auth.php/login`, {
+        const res = await fetch(`${API_BASE}/auth.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: user, password: pass })

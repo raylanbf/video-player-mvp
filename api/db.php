@@ -2,7 +2,7 @@
 // /api/db.php
 // Configuração do Banco de Dados para Hostinger / cPanel
 
-$host = 'srv1603.hstgr.io';
+$host = 'localhost';
 $db   = 'u366538509_bancoplayer1';
 $user = 'u366538509_bancoplayer';
 $pass = 'AMist01@92';
@@ -18,8 +18,8 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-    // Return the actual error message temporarily to debug
-    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()]);
     exit;
 }
 

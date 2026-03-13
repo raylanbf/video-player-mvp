@@ -36,7 +36,7 @@ loginForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('password').value;
     
     try {
-        const res = await fetch(`${API_BASE}/admin/login`, {
+        const res = await fetch(`${API_BASE}/auth.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -108,7 +108,7 @@ document.getElementById('config-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const logo_url = document.getElementById('config-logo').value;
     try {
-        const res = await apiFetch('/instituicao/logo', {
+        const res = await apiFetch('/instituicao/logo.php', {
             method: 'PUT',
             body: JSON.stringify({ logo_url })
         });
@@ -125,7 +125,7 @@ document.getElementById('config-form').addEventListener('submit', async (e) => {
 
 // ================= CURSOS =================
 async function loadCursos() {
-    const res = await apiFetch('/cursos');
+    const res = await apiFetch('/cursos.php');
     const cursos = await res.json();
     const tbody = document.getElementById('cursos-tbody');
     tbody.innerHTML = '';
@@ -148,7 +148,7 @@ document.getElementById('curso-form').addEventListener('submit', async (e) => {
     const nome = document.getElementById('curso-nome').value;
     const status = document.getElementById('curso-status').value;
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `/cursos/${id}` : `/cursos`;
+    const url = id ? `/cursos.php?id=${id}` : `/cursos.php`;
     
     await apiFetch(url, { method, body: JSON.stringify({ nome, status }) });
     document.getElementById('curso-form').reset();
@@ -172,7 +172,7 @@ window.editCurso = (id, nome, status) => {
 
 window.deleteCurso = async (id) => {
     if(confirm('Atenção: Excluir um curso não exclui automaticamente os vídeos associados, mas pode quebrar a exibição. Continuar?')) {
-        await apiFetch(`/cursos/${id}`, { method: 'DELETE' });
+        await apiFetch(`/cursos.php?id=${id}`, { method: 'DELETE' });
         loadCursos();
     }
 };
@@ -180,14 +180,14 @@ window.deleteCurso = async (id) => {
 // ================= MÓDULOS =================
 async function loadModulos() {
     // Populate select
-    const cres = await apiFetch('/cursos');
+    const cres = await apiFetch('/cursos.php');
     const cursos = await cres.json();
     const select = document.getElementById('modulo-curso-id');
     select.innerHTML = '<option value="">Selecione o Curso...</option>';
     cursos.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
 
     // Load table
-    const res = await apiFetch('/modulos');
+    const res = await apiFetch('/modulos.php');
     const modulos = await res.json();
     const tbody = document.getElementById('modulos-tbody');
     tbody.innerHTML = '';
@@ -212,7 +212,7 @@ document.getElementById('modulo-form').addEventListener('submit', async (e) => {
     const curso_id = document.getElementById('modulo-curso-id').value;
     const status = document.getElementById('modulo-status').value;
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `/modulos/${id}` : `/modulos`;
+    const url = id ? `/modulos.php?id=${id}` : `/modulos.php`;
     
     await apiFetch(url, { method, body: JSON.stringify({ nome, curso_id, status }) });
     document.getElementById('modulo-form').reset();
@@ -237,7 +237,7 @@ window.editModulo = (id, nome, curso_id, status) => {
 
 window.deleteModulo = async (id) => {
     if(confirm('Atenção: Excluir um módulo não exclui automaticamente os vídeos associados, mas pode quebrar a exibição. Continuar?')) {
-        await apiFetch(`/modulos/${id}`, { method: 'DELETE' });
+        await apiFetch(`/modulos.php?id=${id}`, { method: 'DELETE' });
         loadModulos();
     }
 };
@@ -246,7 +246,7 @@ window.deleteModulo = async (id) => {
 
 async function populateVideoFormDropdowns() {
     const cursoSelect = document.getElementById('video-curso-id');
-    const res = await apiFetch('/cursos');
+    const res = await apiFetch('/cursos.php');
     const cursos = await res.json();
     cursoSelect.innerHTML = '<option value="">Selecione o Curso...</option>';
     cursos.forEach(c => cursoSelect.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
@@ -259,7 +259,7 @@ window.loadModulosForVideoForm = async (selectedModuloId = null) => {
     
     if(!curso_id) return;
     
-    const res = await apiFetch(`/modulos?curso_id=${curso_id}`);
+    const res = await apiFetch(`/modulos.php?curso_id=${curso_id}`);
     const modulos = await res.json();
     modulos.forEach(m => {
         const selected = m.id == selectedModuloId ? 'selected' : '';
@@ -271,7 +271,7 @@ async function loadVideos() {
     hideAllViews();
     videosListView.classList.remove('hidden');
     
-    const res = await apiFetch('/videos');
+    const res = await apiFetch('/videos.php');
     if(res.status === 403) return document.getElementById('logout-btn').click();
     
     const videos = await res.json();
@@ -325,7 +325,7 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
     };
     
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `/videos/${id}` : `/videos`;
+    const url = id ? `/videos.php?id=${id}` : `/videos.php`;
     
     const res = await apiFetch(url, {
         method,

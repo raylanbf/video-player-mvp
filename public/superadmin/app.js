@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_BASE = 'http://localhost:3000/api';
 let token = localStorage.getItem('super_token');
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,7 +20,7 @@ async function handleLogin(e) {
     const errorEl = document.getElementById('login-error');
     
     try {
-        const res = await fetch(`${API_URL}/admin/login`, {
+        const res = await fetch(`${API_BASE}/auth.php/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: user, password: pass })
@@ -73,7 +73,8 @@ function showView(view) {
 
 async function loadInstitutions() {
     try {
-        const res = await fetch(`${API_URL}/superadmin/instituicoes`, {
+        const url = `${API_BASE}/superadmin/instituicoes.php`;
+        const res = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if(res.status === 403) return handleLogout();
@@ -109,7 +110,7 @@ async function handleCreateInst(e) {
     };
     
     try {
-        const res = await fetch(`${API_URL}/superadmin/instituicoes`, {
+        const res = await fetch(`${API_BASE}/superadmin/instituicoes.php`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',

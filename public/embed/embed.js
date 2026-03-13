@@ -23,7 +23,7 @@ async function initEmbed() {
     }
     
     try {
-        const res = await fetch(`${API_BASE}/student/video/${videoId}`);
+        const res = await fetch(`${API_BASE}/student/video.php?id=${videoId}`);
         if(!res.ok) throw new Error('Video loading failed');
         
         const data = await res.json();
@@ -56,14 +56,14 @@ async function initEmbed() {
 
 async function loadProgress() {
     try {
-        const res = await fetch(`${API_BASE}/student/progress/${userId}/${videoId}`);
+        const res = await fetch(`${API_BASE}/student/progress.php?userId=${userId}&videoId=${videoId}`);
         const progress = await res.json();
         if (progress && progress.current_time) {
             videoEl.currentTime = progress.current_time;
         }
         
         // Fetch answered
-        const ansRes = await fetch(`${API_BASE}/student/answers/${userId}/${videoId}`);
+        const ansRes = await fetch(`${API_BASE}/student/answer.php?userId=${userId}&videoId=${videoId}`);
         const ansRecords = await ansRes.json();
         ansRecords.forEach(a => {
             if (a.is_correct) answeredQuestions.add(a.question_id);
@@ -75,7 +75,7 @@ async function loadProgress() {
 async function saveProgress() {
     if (videoEl.paused) return; // don't spam if paused
     try {
-        await fetch(`${API_BASE}/student/progress`, {
+        await fetch(`${API_BASE}/student/progress.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,7 +172,7 @@ async function submitAnswer(selectedLetter, btnElement) {
     
     // Save answer via microservice PHP logic simulation (Node.js fallback for now via API)
     try {
-        await fetch(`${API_BASE}/student/answer`, {
+        await fetch(`${API_BASE}/student/answer.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

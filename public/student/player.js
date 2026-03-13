@@ -36,7 +36,7 @@ let progressSavingInterval = null;
 // Initialize
 async function init() {
     try {
-        const res = await fetch(`${API_BASE}/student/video/${videoId}`);
+        const res = await fetch(`${API_BASE}/student/video.php?id=${videoId}`);
         if (!res.ok) {
             alert('Erro ao carregar vídeo.');
             return;
@@ -73,7 +73,7 @@ async function init() {
 }
 
 async function loadProgress() {
-    const res = await fetch(`${API_BASE}/student/progress/${userId}/${videoId}`);
+    const res = await fetch(`${API_BASE}/student/progress.php?userId=${userId}&videoId=${videoId}`);
     const prog = await res.json();
     
     answeredQuestionsIds = prog.answered_questions || [];
@@ -86,7 +86,7 @@ async function loadProgress() {
 }
 
 async function saveProgress(concluido = false) {
-    await fetch(`${API_BASE}/student/progress`, {
+    await fetch(`${API_BASE}/student/progress.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,7 +194,7 @@ async function selectOption(selectedKey, btnEl) {
         if(b === btnEl) b.classList.add('selected');
     });
     
-    const res = await fetch(`${API_BASE}/student/answer`, {
+    const res = await fetch(`${API_BASE}/student/answer.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

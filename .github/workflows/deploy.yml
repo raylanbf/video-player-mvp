@@ -19,8 +19,8 @@ jobs:
       - name: Preparar pasta de Deploy (dist)
         run: |
           mkdir dist
-          # Copia o conteúdo da pasta public para a raiz do Deploy (para não ficar com link /public/admin)
-          cp -r public/* dist/
+          # Copia as pastas essenciais para a dist (a public não existe mais, tudo virou raiz)
+          cp -r admin superadmin student embed css js index.html dist/
           
           # Copia a pasta api (onde estão todos os endpoints em PHP)
           cp -r api dist/api

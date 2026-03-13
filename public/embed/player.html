@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Embed</title>
+    <!-- We reuse the style.css but inside our isolated body it will look different -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Specific overrides for the embed to fill the iframe completely */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent; /* Or black */
+            overflow: hidden;
+        }
+        .embed-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Keeps aspect ratio inside the iframe */
+        }
+        /* Reuse the existing modal classes */
+    </style>
+</head>
+<body class="embed-body">
+    
+    <div class="embed-wrapper">
+        <video id="video-player" controls controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture></video>
+        <!-- The JS will inject the watermark and logo here -->
+    </div>
+
+    <!-- Question Modal -->
+    <div id="question-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modal-enunciado">Pergunta</h3>
+            <div id="modal-options" class="options-list">
+                <!-- Buttons dynamically loaded -->
+            </div>
+            <div id="modal-feedback" class="feedback-msg hidden"></div>
+            <button id="modal-continue-btn" class="btn hidden" style="margin-top: 1rem; width: 100%;">Continuar Vídeo</button>
+        </div>
+    </div>
+
+    <script src="/embed/embed.js"></script>
+</body>
+</html>

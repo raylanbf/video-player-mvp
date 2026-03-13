@@ -128,6 +128,7 @@ async function loadVideos() {
             <td>
                 <button onclick="editVideo(${v.id})" class="btn btn-small btn-secondary">Editar</button>
                 <button onclick="manageQuestions(${v.id}, '${v.title.replace(/'/g, "\\'")}')" class="btn btn-small">Perguntas</button>
+                <button onclick="copyEmbedCode(${v.id})" class="btn btn-small btn-secondary" style="background:#4b5563;">Copiar Embed</button>
                 <button onclick="deleteVideo(${v.id})" class="btn btn-small btn-danger">Excluir</button>
             </td>
         `;
@@ -195,6 +196,19 @@ window.deleteVideo = async (id) => {
         await apiFetch(`/videos/${id}`, { method: 'DELETE' });
         loadVideos();
     }
+};
+
+window.copyEmbedCode = (id) => {
+    // We assume the user needs a way to pass their student's ID dynamically via PHP/LMS later.
+    // For MVP, we provide a placeholder [ID_DO_ALUNO] in the URL
+    const domain = window.location.origin;
+    const embedCode = `<iframe src="${domain}/embed/player.html?v=${id}&u=[ID_DO_ALUNO]" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+    
+    navigator.clipboard.writeText(embedCode).then(() => {
+        alert("Código de Incorporação copiado para a área de transferência!\n\nCole no seu site e lembre-se de substituir o [ID_DO_ALUNO] pelo código/e-mail real do usuário na sua plataforma.");
+    }).catch(err => {
+        alert('Erro ao copiar código: ' + err);
+    });
 };
 
 // ================= QUESTIONS =================

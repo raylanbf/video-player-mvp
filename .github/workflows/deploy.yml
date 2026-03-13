@@ -1,0 +1,72 @@
+name: Deploy VideoPlayer MVP via FTP na Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar o repositório
+        uses: actions/checkout@v3
+
+      # Como o nosso MVP é 100% PHP e JS nativo (sem NPM/Build process),
+      # nós não precisamos de setup-node nem de npm run build.
+      # Todos os arquivos que estão na pasta raiz já são a versão final para publicar.
+
+      - name: Preparar pasta de Deploy (dist)
+        run: |
+          mkdir dist
+          # Copia a pasta public (onde estão os painéis e o player)
+          cp -r public dist/public
+          
+          # Copia a pasta api (onde estão todos os endpoints em PHP)
+          cp -r api dist/api
+          
+          # Copia também qualquer outro arquivo da raiz se precisar (ex: schema pra backup)
+          cp schema_completo.sql dist/
+
+      - name: Configurar .htaccess para segurança e rotas limpas (Opcional, mas recomendado)
+        run: |
+          cat > dist/.htaccess << 'EOF'
+          RewriteEngine On
+          
+          # Protege os arquivos de configuração
+          <FilesMatch "\.(env|sql)$">
+              Order allow,deny
+              Deny from all
+          </FilesMatch>
+          
+          # Redireciona a raiz para a pasta public (Opcional, dependendo de como você quer a URL final)
+          # RewriteRule ^$ public/student/index.html [L]
+          EOF
+
+      - name: Inject Database Secrets into db.php
+        run: |
+          # Substitui os placeholders no arquivo db.php original pelas secrets do Github!
+          sed -i "s/'localhost'/'${{ secrets.DB_HOST }}'/g" dist/api/db.php
+          sed -i "s/'seu_banco_de_dados'/'${{ secrets.DB_NAME }}'/g" dist/api/db.php
+          sed -i "s/'seu_usuario'/'${{ secrets.DB_USER }}'/g" dist/api/db.php
+          sed -i "s/'sua_senha'/'${{ secrets.DB_PASS }}'/g" dist/api/db.php
+
+      - name: Mostrar arquivos gerados para conferência
+        run: |
+          echo "=== dist/ ==="
+          ls -al dist/
+          echo "=== dist/api/ ==="
+          ls -alR dist/api/
+
+      - name: Deploy FTP para Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: 21
+          local-dir: dist/
+          server-dir: /public_html/
+          dangerous-clean-slate: false # False para não apagar arquivos existentes na Hostinger q não estão no Git
+          dry-run: false
+          log-level: verbose

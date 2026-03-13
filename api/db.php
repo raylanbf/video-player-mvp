@@ -2,10 +2,10 @@
 // /api/db.php
 // Configuração do Banco de Dados para Hostinger / cPanel
 
-$host = 'localhost'; // Usually localhost on shared hosting
-$db   = 'seu_banco_de_dados';
-$user = 'seu_usuario';
-$pass = 'sua_senha';
+$host = 'srv1603.hstgr.io';
+$db   = 'u366538509_bancoplayer1';
+$user = 'u366538509_bancoplayer';
+$pass = 'AMist01@92';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

@@ -43,13 +43,9 @@ jobs:
           # RewriteRule ^$ public/student/index.html [L]
           EOF
 
-      - name: Inject Database Secrets into db.php
+      - name: Inject Configuration (Opcional)
         run: |
-          # Substitui os placeholders no arquivo db.php original pelas secrets do Github!
-          sed -i "s/'localhost'/'${{ secrets.DB_HOST }}'/g" dist/api/db.php
-          sed -i "s/'seu_banco_de_dados'/'${{ secrets.DB_NAME }}'/g" dist/api/db.php
-          sed -i "s/'seu_usuario'/'${{ secrets.DB_USER }}'/g" dist/api/db.php
-          sed -i "s/'sua_senha'/'${{ secrets.DB_PASS }}'/g" dist/api/db.php
+          echo "No secrets injection needed for MVP test"
 
       - name: Mostrar arquivos gerados para conferência
         run: |

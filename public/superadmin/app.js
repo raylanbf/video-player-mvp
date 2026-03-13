@@ -9,8 +9,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('new-inst-btn').addEventListener('click', () => showView('form'));
     document.getElementById('cancel-inst-btn').addEventListener('click', () => showView('list'));
-    
     document.getElementById('inst-form').addEventListener('submit', handleCreateInst);
+    
+    // Register logic
+    document.getElementById('show-register-btn').addEventListener('click', () => {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('register-section').classList.remove('hidden');
+    });
+    
+    document.getElementById('show-login-btn').addEventListener('click', () => {
+        document.getElementById('register-section').classList.add('hidden');
+        document.getElementById('login-section').classList.remove('hidden');
+    });
+    
+    document.getElementById('register-form').addEventListener('submit', handleRegister);
 });
 
 async function handleLogin(e) {
@@ -34,6 +46,45 @@ async function handleLogin(e) {
             checkAuth();
         } else {
             errorEl.innerText = data.message || 'Acesso negado (não é superadmin)';
+            errorEl.style.display = 'block';
+        }
+    } catch (err) {
+        errorEl.innerText = 'Erro ao conectar ao servidor';
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const user = document.getElementById('reg-username').value;
+    const pass = document.getElementById('reg-password').value;
+    const errorEl = document.getElementById('register-error');
+    const successEl = document.getElementById('register-success');
+    
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    try {
+        const res = await fetch(`${API_BASE}/register.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            successEl.innerText = data.message;
+            successEl.style.display = 'block';
+            document.getElementById('register-form').reset();
+            
+            // Auto login after 2 seconds
+            setTimeout(() => {
+                document.getElementById('show-login-btn').click();
+                document.getElementById('username').value = user;
+                document.getElementById('password').value = pass;
+            }, 2000);
+        } else {
+            errorEl.innerText = data.message || 'Erro ao criar conta';
             errorEl.style.display = 'block';
         }
     } catch (err) {

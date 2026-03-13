@@ -9,6 +9,8 @@ const logoutBtn = document.getElementById('logout-btn');
 const videosListView = document.getElementById('videos-list-view');
 const videoFormView = document.getElementById('video-form-view');
 const questionsView = document.getElementById('questions-view');
+const cursosListView = document.getElementById('cursos-list-view');
+const modulosListView = document.getElementById('modulos-list-view');
 
 let currentVideoId = null;
 let token = localStorage.getItem('adminToken');
@@ -68,19 +70,37 @@ function showDashboard() {
 }
 
 // Navigation inside Dashboard
-document.getElementById('show-videos-btn').addEventListener('click', () => {
-    videosListView.classList.remove('hidden');
+
+function hideAllViews() {
+    videosListView.classList.add('hidden');
     videoFormView.classList.add('hidden');
     questionsView.classList.add('hidden');
     document.getElementById('config-wrapper').classList.add('hidden');
+    cursosListView.classList.add('hidden');
+    modulosListView.classList.add('hidden');
+}
+
+document.getElementById('show-videos-btn').addEventListener('click', () => {
+    hideAllViews();
+    videosListView.classList.remove('hidden');
     loadVideos();
 });
 
 document.getElementById('show-config-btn').addEventListener('click', () => {
-    videosListView.classList.add('hidden');
-    videoFormView.classList.add('hidden');
-    questionsView.classList.add('hidden');
+    hideAllViews();
     document.getElementById('config-wrapper').classList.remove('hidden');
+});
+
+document.getElementById('show-cursos-btn').addEventListener('click', () => {
+    hideAllViews();
+    cursosListView.classList.remove('hidden');
+    loadCursos();
+});
+
+document.getElementById('show-modulos-btn').addEventListener('click', () => {
+    hideAllViews();
+    modulosListView.classList.remove('hidden');
+    loadModulos();
 });
 
 // Config Logic
@@ -103,13 +123,153 @@ document.getElementById('config-form').addEventListener('submit', async (e) => {
     }
 });
 
+// ================= CURSOS =================
+async function loadCursos() {
+    const res = await apiFetch('/cursos');
+    const cursos = await res.json();
+    const tbody = document.getElementById('cursos-tbody');
+    tbody.innerHTML = '';
+    cursos.forEach(c => {
+        tbody.innerHTML += `<tr>
+            <td>${c.id}</td>
+            <td>${c.nome}</td>
+            <td>${c.status}</td>
+            <td>
+                <button onclick="editCurso(${c.id}, '${c.nome.replace(/'/g,"\\'")}', '${c.status}')" class="btn btn-small btn-secondary">Editar</button>
+                <button onclick="deleteCurso(${c.id})" class="btn btn-small btn-danger">Excluir</button>
+            </td>
+        </tr>`;
+    });
+}
+
+document.getElementById('curso-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('curso-id').value;
+    const nome = document.getElementById('curso-nome').value;
+    const status = document.getElementById('curso-status').value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/cursos/${id}` : `/cursos`;
+    
+    await apiFetch(url, { method, body: JSON.stringify({ nome, status }) });
+    document.getElementById('curso-form').reset();
+    document.getElementById('curso-id').value = '';
+    document.getElementById('cancel-curso-btn').classList.add('hidden');
+    loadCursos();
+});
+
+document.getElementById('cancel-curso-btn').addEventListener('click', () => {
+    document.getElementById('curso-form').reset();
+    document.getElementById('curso-id').value = '';
+    document.getElementById('cancel-curso-btn').classList.add('hidden');
+});
+
+window.editCurso = (id, nome, status) => {
+    document.getElementById('curso-id').value = id;
+    document.getElementById('curso-nome').value = nome;
+    document.getElementById('curso-status').value = status;
+    document.getElementById('cancel-curso-btn').classList.remove('hidden');
+};
+
+window.deleteCurso = async (id) => {
+    if(confirm('Atenção: Excluir um curso não exclui automaticamente os vídeos associados, mas pode quebrar a exibição. Continuar?')) {
+        await apiFetch(`/cursos/${id}`, { method: 'DELETE' });
+        loadCursos();
+    }
+};
+
+// ================= MÓDULOS =================
+async function loadModulos() {
+    // Populate select
+    const cres = await apiFetch('/cursos');
+    const cursos = await cres.json();
+    const select = document.getElementById('modulo-curso-id');
+    select.innerHTML = '<option value="">Selecione o Curso...</option>';
+    cursos.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
+
+    // Load table
+    const res = await apiFetch('/modulos');
+    const modulos = await res.json();
+    const tbody = document.getElementById('modulos-tbody');
+    tbody.innerHTML = '';
+    modulos.forEach(m => {
+        tbody.innerHTML += `<tr>
+            <td>${m.id}</td>
+            <td>${m.nome}</td>
+            <td>${m.curso_nome}</td>
+            <td>${m.status}</td>
+            <td>
+                <button onclick="editModulo(${m.id}, '${m.nome.replace(/'/g,"\\'")}', ${m.curso_id}, '${m.status}')" class="btn btn-small btn-secondary">Editar</button>
+                <button onclick="deleteModulo(${m.id})" class="btn btn-small btn-danger">Excluir</button>
+            </td>
+        </tr>`;
+    });
+}
+
+document.getElementById('modulo-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('modulo-id').value;
+    const nome = document.getElementById('modulo-nome').value;
+    const curso_id = document.getElementById('modulo-curso-id').value;
+    const status = document.getElementById('modulo-status').value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/modulos/${id}` : `/modulos`;
+    
+    await apiFetch(url, { method, body: JSON.stringify({ nome, curso_id, status }) });
+    document.getElementById('modulo-form').reset();
+    document.getElementById('modulo-id').value = '';
+    document.getElementById('cancel-modulo-btn').classList.add('hidden');
+    loadModulos();
+});
+
+document.getElementById('cancel-modulo-btn').addEventListener('click', () => {
+    document.getElementById('modulo-form').reset();
+    document.getElementById('modulo-id').value = '';
+    document.getElementById('cancel-modulo-btn').classList.add('hidden');
+});
+
+window.editModulo = (id, nome, curso_id, status) => {
+    document.getElementById('modulo-id').value = id;
+    document.getElementById('modulo-nome').value = nome;
+    document.getElementById('modulo-curso-id').value = curso_id;
+    document.getElementById('modulo-status').value = status;
+    document.getElementById('cancel-modulo-btn').classList.remove('hidden');
+};
+
+window.deleteModulo = async (id) => {
+    if(confirm('Atenção: Excluir um módulo não exclui automaticamente os vídeos associados, mas pode quebrar a exibição. Continuar?')) {
+        await apiFetch(`/modulos/${id}`, { method: 'DELETE' });
+        loadModulos();
+    }
+};
+
 // ================= VIDEOS =================
 
+async function populateVideoFormDropdowns() {
+    const cursoSelect = document.getElementById('video-curso-id');
+    const res = await apiFetch('/cursos');
+    const cursos = await res.json();
+    cursoSelect.innerHTML = '<option value="">Selecione o Curso...</option>';
+    cursos.forEach(c => cursoSelect.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
+}
+
+window.loadModulosForVideoForm = async (selectedModuloId = null) => {
+    const curso_id = document.getElementById('video-curso-id').value;
+    const moduloSelect = document.getElementById('video-modulo-id');
+    moduloSelect.innerHTML = '<option value="">Selecione o Módulo...</option>';
+    
+    if(!curso_id) return;
+    
+    const res = await apiFetch(`/modulos?curso_id=${curso_id}`);
+    const modulos = await res.json();
+    modulos.forEach(m => {
+        const selected = m.id == selectedModuloId ? 'selected' : '';
+        moduloSelect.innerHTML += `<option value="${m.id}" ${selected}>${m.nome}</option>`;
+    });
+};
+
 async function loadVideos() {
+    hideAllViews();
     videosListView.classList.remove('hidden');
-    videoFormView.classList.add('hidden');
-    questionsView.classList.add('hidden');
-    document.getElementById('config-wrapper').classList.add('hidden');
     
     const res = await apiFetch('/videos');
     if(res.status === 403) return document.getElementById('logout-btn').click();
@@ -128,7 +288,7 @@ async function loadVideos() {
             <td>
                 <button onclick="editVideo(${v.id})" class="btn btn-small btn-secondary">Editar</button>
                 <button onclick="manageQuestions(${v.id}, '${v.title.replace(/'/g, "\\'")}')" class="btn btn-small">Perguntas</button>
-                <button onclick="copyEmbedCode(${v.id})" class="btn btn-small btn-secondary" style="background:#4b5563;">Copiar Embed</button>
+                <button onclick="copyEmbedCode(${v.id}, ${v.instituicao_id}, ${v.curso_id}, ${v.modulo_id})" class="btn btn-small btn-secondary" style="background:#4b5563;">Copiar Embed</button>
                 <button onclick="deleteVideo(${v.id})" class="btn btn-small btn-danger">Excluir</button>
             </td>
         `;
@@ -136,12 +296,16 @@ async function loadVideos() {
     });
 }
 
-document.getElementById('new-video-btn').addEventListener('click', () => {
+document.getElementById('new-video-btn').addEventListener('click', async () => {
     document.getElementById('video-form').reset();
     document.getElementById('video-id').value = '';
     document.getElementById('video-form-title').innerText = 'Novo Vídeo';
-    videosListView.classList.add('hidden');
+    document.getElementById('video-modulo-id').innerHTML = '<option value="">Selecione o curso primeiro...</option>';
+    
+    hideAllViews();
     videoFormView.classList.remove('hidden');
+    
+    await populateVideoFormDropdowns();
 });
 
 document.getElementById('cancel-video-btn').addEventListener('click', loadVideos);
@@ -154,6 +318,8 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
         title: document.getElementById('video-title').value,
         description: document.getElementById('video-desc').value,
         video_url: document.getElementById('video-url').value,
+        curso_id: document.getElementById('video-curso-id').value,
+        modulo_id: document.getElementById('video-modulo-id').value,
         duration: parseInt(document.getElementById('video-duration').value, 10),
         status: document.getElementById('video-status').value
     };
@@ -179,6 +345,7 @@ window.editVideo = async (id) => {
     const res = await apiFetch(`/videos/${id}`);
     const video = await res.json();
     
+    // Populate form logic
     document.getElementById('video-id').value = video.id;
     document.getElementById('video-title').value = video.title;
     document.getElementById('video-desc').value = video.description;
@@ -186,9 +353,15 @@ window.editVideo = async (id) => {
     document.getElementById('video-duration').value = video.duration;
     document.getElementById('video-status').value = video.status;
     
-    document.getElementById('video-form-title').innerText = 'Editar Vídeo';
-    videosListView.classList.add('hidden');
+    hideAllViews();
     videoFormView.classList.remove('hidden');
+    
+    // Load dropdowns based on current video relation
+    await populateVideoFormDropdowns();
+    document.getElementById('video-curso-id').value = video.curso_id;
+    await window.loadModulosForVideoForm(video.modulo_id);
+    
+    document.getElementById('video-form-title').innerText = 'Editar Vídeo';
 };
 
 window.deleteVideo = async (id) => {
@@ -198,11 +371,11 @@ window.deleteVideo = async (id) => {
     }
 };
 
-window.copyEmbedCode = (id) => {
+window.copyEmbedCode = (id, inst_id, curso_id, modulo_id) => {
     // We assume the user needs a way to pass their student's ID dynamically via PHP/LMS later.
     // For MVP, we provide a placeholder [ID_DO_ALUNO] in the URL
     const domain = window.location.origin;
-    const embedCode = `<iframe src="${domain}/embed/player.html?v=${id}&u=[ID_DO_ALUNO]" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+    const embedCode = `<iframe src="${domain}/embed/player.html?v=${id}&i=${inst_id}&c=${curso_id}&m=${modulo_id}&u=[ID_DO_ALUNO]" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
     
     navigator.clipboard.writeText(embedCode).then(() => {
         alert("Código de Incorporação copiado para a área de transferência!\n\nCole no seu site e lembre-se de substituir o [ID_DO_ALUNO] pelo código/e-mail real do usuário na sua plataforma.");

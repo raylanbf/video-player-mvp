@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     instituicao_id INT NOT NULL,
     curso_id INT NOT NULL,
+    modulo_id INT NOT NULL,
     video_id INT NOT NULL,
     enunciado TEXT NOT NULL,
     alternativa_a TEXT NOT NULL,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS answers_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     instituicao_id INT NOT NULL,
     curso_id INT NOT NULL,
+    modulo_id INT NOT NULL,
     question_id INT NOT NULL,
     user_id VARCHAR(255) NOT NULL,
     resposta_marcada CHAR(1) NOT NULL,
@@ -29,6 +31,6 @@ CREATE TABLE IF NOT EXISTS answers_log (
 );
 
 -- Dados de exemplo
-INSERT INTO questions (instituicao_id, curso_id, video_id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado)
+INSERT INTO questions (instituicao_id, curso_id, modulo_id, video_id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado)
 VALUES 
-(1, 101, 50, 'Qual a função de um microserviço?', 'Monolito gigante', 'Serviço isolado e independente', 'Banco de dados', 'Frontend', 'b', 'Correto! É um serviço independente.', 'Errado, tente novamente.');
+(1, 101, 201, 50, 'Qual a função de um microserviço?', 'Monolito gigante', 'Serviço isolado e independente', 'Banco de dados', 'Frontend', 'b', 'Correto! É um serviço independente.', 'Errado, tente novamente.');

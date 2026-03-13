@@ -1,9 +1,9 @@
 <?php
 // Configurações do Banco de Dados MySQL
-$host = 'localhost';
-$dbname = 'videoplayer_mvp';
-$username = 'root'; // Altere para seu usuário
-$password = '';     // Altere para sua senha
+$host = 'srv1603.hstgr.io';
+$dbname = 'u366538509_bancoplayer';
+$username = 'u366538509_bancoplayer1'; // Altere para seu usuário
+$password = 'AMist01@92'; // Altere para sua senha
 
 // Criando conexão com MySQLi
 $conn = new mysqli($host, $username, $password, $dbname);

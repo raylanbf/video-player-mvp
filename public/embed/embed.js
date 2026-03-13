@@ -3,6 +3,9 @@ const API_BASE = '/api';
 
 const urlParams = new URLSearchParams(window.location.search);
 const videoId = urlParams.get('v');
+const instituicaoId = urlParams.get('i');
+const cursoId = urlParams.get('c');
+const moduloId = urlParams.get('m');
 const userId = urlParams.get('u') || 'aluno_embed_anon';
 
 const videoEl = document.getElementById('video-player');
@@ -78,6 +81,9 @@ async function saveProgress() {
             body: JSON.stringify({
                 user_id: userId,
                 video_id: videoId,
+                instituicao_id: instituicaoId,
+                curso_id: cursoId,
+                modulo_id: moduloId,
                 current_time: videoEl.currentTime,
                 is_completed: videoEl.ended
             })
@@ -172,6 +178,9 @@ async function submitAnswer(selectedLetter, btnElement) {
             body: JSON.stringify({
                 user_id: userId,
                 video_id: videoId,
+                instituicao_id: instituicaoId,
+                curso_id: cursoId,
+                modulo_id: moduloId,
                 question_id: currentQuestion.id,
                 selected_option: selectedLetter,
                 is_correct: isCorrect

@@ -30,16 +30,69 @@
     <!-- Dashboard Section -->
     <div id="dashboard-section" class="hidden">
         <header class="admin-header">
-            <h2>Painel Administrativo</h2>
+            <h2>Painel do Administrador</h2>
             <div>
+                <button id="show-cursos-btn" class="btn btn-secondary btn-small">Cursos</button>
+                <button id="show-modulos-btn" class="btn btn-secondary btn-small">Módulos</button>
+                <button id="show-videos-btn" class="btn btn-secondary btn-small">Vídeos</button>
+                <button id="show-config-btn" class="btn btn-secondary btn-small">Configurações</button>
                 <a href="/" class="btn btn-secondary btn-small">Ver Site</a>
                 <button id="logout-btn" class="btn btn-danger btn-small">Sair</button>
             </div>
         </header>
 
         <main class="admin-container">
+            <!-- Cursos List -->
+            <div id="cursos-list-view" class="card hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Meus Cursos</h2>
+                    <form id="curso-form" style="display: flex; gap: 10px;">
+                        <input type="hidden" id="curso-id">
+                        <input type="text" id="curso-nome" class="form-control" placeholder="Nome do Curso" required>
+                        <select id="curso-status" class="form-control" style="width: auto;">
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                        <button type="submit" class="btn">Salvar</button>
+                        <button type="button" id="cancel-curso-btn" class="btn btn-secondary hidden">Cancelar</button>
+                    </form>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Nome</th><th>Status</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody id="cursos-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Modulos List -->
+            <div id="modulos-list-view" class="card hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Módulos</h2>
+                    <form id="modulo-form" style="display: flex; gap: 10px;">
+                        <input type="hidden" id="modulo-id">
+                        <select id="modulo-curso-id" class="form-control" required>
+                            <option value="">Selecione o Curso...</option>
+                        </select>
+                        <input type="text" id="modulo-nome" class="form-control" placeholder="Nome do Módulo" required>
+                        <select id="modulo-status" class="form-control" style="width: auto;">
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                        <button type="submit" class="btn">Salvar</button>
+                        <button type="button" id="cancel-modulo-btn" class="btn btn-secondary hidden">Cancelar</button>
+                    </form>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Módulo</th><th>Curso Pertencente</th><th>Status</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody id="modulos-tbody"></tbody>
+                </table>
+            </div>
+
             <!-- Videos List -->
-            <div id="videos-list-view" class="card">
+            <div id="videos-list-view" class="card hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h2>Meus Vídeos</h2>
                     <button id="new-video-btn" class="btn">Novo Vídeo</button>
@@ -64,6 +117,20 @@
                 <h2 id="video-form-title">Cadastrar/Editar Vídeo</h2>
                 <form id="video-form">
                     <input type="hidden" id="video-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Curso</label>
+                            <select id="video-curso-id" class="form-control" required onchange="loadModulosForVideoForm()">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Módulo</label>
+                            <select id="video-modulo-id" class="form-control" required>
+                                <option value="">Selecione o curso primeiro...</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Título</label>
                         <input type="text" id="video-title" class="form-control" required>

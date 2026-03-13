@@ -100,6 +100,100 @@ app.put('/api/instituicao/logo', (req, res) => {
     });
 });
 
+// --- ADMIN: CURSOS E MÓDULOS ---
+
+// List Cursos
+app.get('/api/cursos', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.all('SELECT * FROM cursos WHERE instituicao_id = ?', [user.instituicao_id], (err, rows) => {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.post('/api/cursos', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('INSERT INTO cursos (nome, instituicao_id) VALUES (?, ?)', [req.body.nome, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ id: this.lastID });
+    });
+});
+
+app.put('/api/cursos/:id', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('UPDATE cursos SET nome = ?, status = ? WHERE id = ? AND instituicao_id = ?', [req.body.nome, req.body.status, req.params.id, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ updated: this.changes });
+    });
+});
+
+app.delete('/api/cursos/:id', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('DELETE FROM cursos WHERE id = ? AND instituicao_id = ?', [req.params.id, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ deleted: this.changes });
+    });
+});
+
+// List Modulos
+app.get('/api/modulos', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    let query = 'SELECT m.*, c.nome as curso_nome FROM modulos m JOIN cursos c ON m.curso_id = c.id WHERE m.instituicao_id = ?';
+    const params = [user.instituicao_id];
+    
+    if (req.query.curso_id) {
+        query += ' AND m.curso_id = ?';
+        params.push(req.query.curso_id);
+    }
+    
+    db.all(query, params, (err, rows) => {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.post('/api/modulos', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('INSERT INTO modulos (nome, curso_id, instituicao_id) VALUES (?, ?, ?)', [req.body.nome, req.body.curso_id, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ id: this.lastID });
+    });
+});
+
+app.put('/api/modulos/:id', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('UPDATE modulos SET nome = ?, curso_id = ?, status = ? WHERE id = ? AND instituicao_id = ?', [req.body.nome, req.body.curso_id, req.body.status, req.params.id, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ updated: this.changes });
+    });
+});
+
+app.delete('/api/modulos/:id', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('DELETE FROM modulos WHERE id = ? AND instituicao_id = ?', [req.params.id, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ deleted: this.changes });
+    });
+});
+
+// --- ADMIN: VIDEOS ---
+
 // Admin: List Videos
 app.get('/api/videos', (req, res) => {
   const user = extractUser(req);
@@ -135,11 +229,11 @@ app.post('/api/videos', (req, res) => {
          return res.status(400).json({ error: 'Limite de vídeos da instituição atingido.' });
       }
 
-      const { title, description, video_url, duration, status } = req.body;
-      if (!title || !video_url) return res.status(400).json({ error: 'Título e URL são obrigatórios' });
+      const { title, description, video_url, duration, status, curso_id, modulo_id } = req.body;
+      if (!title || !video_url || !curso_id || !modulo_id) return res.status(400).json({ error: 'Título, URL, Curso e Módulo são obrigatórios' });
 
-      const stmt = db.prepare('INSERT INTO videos (title, description, video_url, duration, status, instituicao_id) VALUES (?, ?, ?, ?, ?, ?)');
-      stmt.run([title, description, video_url, duration, status || 'ativo', user.instituicao_id], function(err) {
+      const stmt = db.prepare('INSERT INTO videos (title, description, video_url, duration, status, instituicao_id, curso_id, modulo_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+      stmt.run([title, description, video_url, duration, status || 'ativo', user.instituicao_id, curso_id, modulo_id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ id: this.lastID });
       });
@@ -152,9 +246,9 @@ app.put('/api/videos/:id', (req, res) => {
   const user = extractUser(req);
   if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
   
-  const { title, description, video_url, duration, status } = req.body;
-  const stmt = db.prepare('UPDATE videos SET title = ?, description = ?, video_url = ?, duration = ?, status = ? WHERE id = ? AND instituicao_id = ?');
-  stmt.run([title, description, video_url, duration, status, req.params.id, user.instituicao_id], function(err) {
+  const { title, description, video_url, duration, status, curso_id, modulo_id } = req.body;
+  const stmt = db.prepare('UPDATE videos SET title = ?, description = ?, video_url = ?, duration = ?, status = ?, curso_id = ?, modulo_id = ? WHERE id = ? AND instituicao_id = ?');
+  stmt.run([title, description, video_url, duration, status, curso_id, modulo_id, req.params.id, user.instituicao_id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ updated: this.changes });
   });
@@ -248,7 +342,7 @@ app.delete('/api/questions/:id', (req, res) => {
 
 // Student: Get video and associated questions
 app.get('/api/student/video/:id', (req, res) => {
-  db.get('SELECT v.id, v.title, v.description, v.instituicao_id, i.logo_url FROM videos v LEFT JOIN instituicoes i ON v.instituicao_id = i.id WHERE v.id = ? AND v.status = "ativo"', [req.params.id], (err, video) => {
+  db.get('SELECT v.id, v.title, v.description, v.instituicao_id, v.curso_id, v.modulo_id, i.logo_url FROM videos v LEFT JOIN instituicoes i ON v.instituicao_id = i.id WHERE v.id = ? AND v.status = "ativo"', [req.params.id], (err, video) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!video) return res.status(404).json({ error: 'Vídeo não encontrado ou inativo' });
     

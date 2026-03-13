@@ -2,12 +2,53 @@ const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./database.sqlite');
 
 db.serialize(() => {
+  // Drop ALL existing tables to recreate schema from scratch
+  db.run(`DROP TABLE IF EXISTS answers`);
+  db.run(`DROP TABLE IF EXISTS progress`);
+  db.run(`DROP TABLE IF EXISTS questions`);
+  db.run(`DROP TABLE IF EXISTS videos`);
+  db.run(`DROP TABLE IF EXISTS users`);
+  db.run(`DROP TABLE IF EXISTS modulos`);
+  db.run(`DROP TABLE IF EXISTS cursos`);
+  db.run(`DROP TABLE IF EXISTS instituicoes`);
+  // Instituições
+  db.run(`CREATE TABLE IF NOT EXISTS instituicoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    limite_videos INTEGER DEFAULT 10,
+    limite_perguntas INTEGER DEFAULT 50,
+    logo_url TEXT,
+    status TEXT DEFAULT 'ativo'
+  )`);
+
+  // Cursos
+  db.run(`CREATE TABLE IF NOT EXISTS cursos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    instituicao_id INTEGER,
+    status TEXT DEFAULT 'ativo',
+    FOREIGN KEY(instituicao_id) REFERENCES instituicoes(id)
+  )`);
+
+  // Módulos
+  db.run(`CREATE TABLE IF NOT EXISTS modulos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    curso_id INTEGER,
+    instituicao_id INTEGER,
+    status TEXT DEFAULT 'ativo',
+    FOREIGN KEY(curso_id) REFERENCES cursos(id),
+    FOREIGN KEY(instituicao_id) REFERENCES instituicoes(id)
+  )`);
+
   // Users table (for fake admin and students)
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
     password TEXT,
-    role TEXT
+    role TEXT,
+    instituicao_id INTEGER,
+    FOREIGN KEY(instituicao_id) REFERENCES instituicoes(id)
   )`);
 
   // Videos table
@@ -17,13 +58,20 @@ db.serialize(() => {
     description TEXT,
     video_url TEXT,
     duration INTEGER,
-    status TEXT DEFAULT 'ativo'
+    status TEXT DEFAULT 'ativo',
+    instituicao_id INTEGER,
+    curso_id INTEGER,
+    modulo_id INTEGER,
+    FOREIGN KEY(instituicao_id) REFERENCES instituicoes(id),
+    FOREIGN KEY(curso_id) REFERENCES cursos(id),
+    FOREIGN KEY(modulo_id) REFERENCES modulos(id)
   )`);
 
   // Questions table
   db.run(`CREATE TABLE IF NOT EXISTS questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     video_id INTEGER,
+    instituicao_id INTEGER,
     minuto_disparo REAL,
     enunciado TEXT,
     alternativa_a TEXT,
@@ -34,7 +82,8 @@ db.serialize(() => {
     feedback_correto TEXT,
     feedback_errado TEXT,
     ativo TEXT DEFAULT 'ativo',
-    FOREIGN KEY(video_id) REFERENCES videos(id)
+    FOREIGN KEY(video_id) REFERENCES videos(id),
+    FOREIGN KEY(instituicao_id) REFERENCES instituicoes(id)
   )`);
 
   // Progress table
@@ -60,26 +109,25 @@ db.serialize(() => {
   )`);
 
   // Seed Data
-  db.get(`SELECT COUNT(*) as count FROM users WHERE username = 'admin'`, (err, row) => {
-    if (row.count === 0) {
-      db.run(`INSERT INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin')`);
-    }
-  });
+  db.get(`SELECT COUNT(*) as count FROM instituicoes WHERE id = 1`, (err, row) => {
+    if (row && row.count === 0) {
+      db.run(`INSERT INTO instituicoes (nome) VALUES ('Instituição Seed')`);
+      db.run(`INSERT INTO users (username, password, role, instituicao_id) VALUES ('admin', 'admin123', 'admin', 1)`);
+      db.run(`INSERT INTO users (username, password, role) VALUES ('superadmin', 'super123', 'superadmin')`);
+      db.run(`INSERT INTO cursos (nome, instituicao_id) VALUES ('Curso de Teste', 1)`);
+      db.run(`INSERT INTO modulos (nome, curso_id, instituicao_id) VALUES ('Módulo 1', 1, 1)`);
 
-  db.get(`SELECT COUNT(*) as count FROM videos WHERE id = 1`, (err, row) => {
-    if (row.count === 0) {
-      db.run(`INSERT INTO videos (title, description, video_url, duration, status) 
-              VALUES ('Vídeo de Exemplo', 'Vídeo demonstrativo para o MVP', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 10, 'ativo')`);
+      db.run(`INSERT INTO videos (title, description, video_url, duration, status, instituicao_id, curso_id, modulo_id) 
+              VALUES ('Vídeo de Exemplo', 'Vídeo demonstrativo para o MVP', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 10, 'ativo', 1, 1, 1)`);
       
-      // Seed questions for video 1
       const questions = [
-        [1, 2, 'O que aconteceu no início do vídeo?', 'Um pássaro cantou', 'Um coelho acordou', 'Uma maçã caiu', 'Nada', 'b', 'Isso mesmo, o coelho grande acordou!', 'Incorreto. Assista novamente com atenção.'],
-        [1, 4, 'Qual a cor principal do cenário?', 'Verde', 'Azul', 'Vermelho', 'Preto', 'a', 'Certo, a cena se passa em uma floresta verde.', 'Incorreto, observe as folhas e a grama.'],
-        [1, 6, 'Qual a atitude dos pequenos animais?', 'Eles são amigáveis', 'Eles estão dormindo', 'Eles incomodam o coelho maior', 'Eles voam', 'c', 'Correto, eles ficam provocando o coelho!', 'Incorreto, eles são travessos.'],
-        [1, 8, 'Como o coelho grande reage?', 'Ele foge', 'Ele tenta se defender e planeja algo', 'Ele chora', 'Ele ri', 'b', 'Muito bem! Ele tenta resolver o problema.', 'Incorreto. Ele toma uma atitude!']
+        [1, 1, 2, 'O que aconteceu no início do vídeo?', 'Um pássaro cantou', 'Um coelho acordou', 'Uma maçã caiu', 'Nada', 'b', 'Isso mesmo, o coelho grande acordou!', 'Incorreto. Assista novamente com atenção.'],
+        [1, 1, 4, 'Qual a cor principal do cenário?', 'Verde', 'Azul', 'Vermelho', 'Preto', 'a', 'Certo, a cena se passa em uma floresta verde.', 'Incorreto, observe as folhas e a grama.'],
+        [1, 1, 6, 'Qual a atitude dos pequenos animais?', 'Eles são amigáveis', 'Eles estão dormindo', 'Eles incomodam o coelho maior', 'Eles voam', 'c', 'Correto, eles ficam provocando o coelho!', 'Incorreto, eles são travessos.'],
+        [1, 1, 8, 'Como o coelho grande reage?', 'Ele foge', 'Ele tenta se defender e planeja algo', 'Ele chora', 'Ele ri', 'b', 'Muito bem! Ele tenta resolver o problema.', 'Incorreto. Ele toma uma atitude!']
       ];
 
-      const stmt = db.prepare(`INSERT INTO questions (video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      const stmt = db.prepare(`INSERT INTO questions (video_id, instituicao_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
       questions.forEach(q => stmt.run(q));
       stmt.finalize();
     }

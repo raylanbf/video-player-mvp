@@ -50,6 +50,14 @@ async function init() {
         videoTitle.innerText = data.video.title;
         videoDesc.innerText = data.video.description || '';
         
+        // Inject Custom Logo if available
+        if (data.video.logo_url) {
+            const logoImg = document.createElement('img');
+            logoImg.src = data.video.logo_url;
+            logoImg.className = 'player-custom-logo';
+            document.querySelector('.video-wrapper').appendChild(logoImg);
+        }
+        
         questions = data.questions || [];
         
         // Start Anti-Piracy Watermark

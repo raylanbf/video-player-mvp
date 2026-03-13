@@ -11,9 +11,19 @@ const videoFormView = document.getElementById('video-form-view');
 const questionsView = document.getElementById('questions-view');
 
 let currentVideoId = null;
+let token = localStorage.getItem('adminToken');
+
+// API Wrapper
+async function apiFetch(endpoint, options = {}) {
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
+    
+    options.headers = { ...defaultHeaders, ...options.headers };
+    return fetch(`${API_BASE}${endpoint}`, options);
+}
 
 // Auth check
-if (localStorage.getItem('adminToken')) {
+if (token) {
     showDashboard();
 }
 
@@ -30,11 +40,12 @@ loginForm.addEventListener('submit', async (e) => {
             body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.role === 'admin') {
             localStorage.setItem('adminToken', data.token);
+            token = data.token;
             showDashboard();
         } else {
-            document.getElementById('login-error').innerText = data.message;
+            document.getElementById('login-error').innerText = data.message || 'Acesso negado';
             document.getElementById('login-error').style.display = 'block';
         }
     } catch (err) {
@@ -45,6 +56,7 @@ loginForm.addEventListener('submit', async (e) => {
 // Logout
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('adminToken');
+    token = null;
     dashboardSection.classList.add('hidden');
     loginSection.classList.remove('hidden');
 });
@@ -55,14 +67,53 @@ function showDashboard() {
     loadVideos();
 }
 
+// Navigation inside Dashboard
+document.getElementById('show-videos-btn').addEventListener('click', () => {
+    videosListView.classList.remove('hidden');
+    videoFormView.classList.add('hidden');
+    questionsView.classList.add('hidden');
+    document.getElementById('config-wrapper').classList.add('hidden');
+    loadVideos();
+});
+
+document.getElementById('show-config-btn').addEventListener('click', () => {
+    videosListView.classList.add('hidden');
+    videoFormView.classList.add('hidden');
+    questionsView.classList.add('hidden');
+    document.getElementById('config-wrapper').classList.remove('hidden');
+});
+
+// Config Logic
+document.getElementById('config-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const logo_url = document.getElementById('config-logo').value;
+    try {
+        const res = await apiFetch('/instituicao/logo', {
+            method: 'PUT',
+            body: JSON.stringify({ logo_url })
+        });
+        const data = await res.json();
+        if(data.success) {
+            alert('Settings Saved!');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch(err) {
+        alert('Network Error');
+    }
+});
+
 // ================= VIDEOS =================
 
 async function loadVideos() {
     videosListView.classList.remove('hidden');
     videoFormView.classList.add('hidden');
     questionsView.classList.add('hidden');
+    document.getElementById('config-wrapper').classList.add('hidden');
     
-    const res = await fetch(`${API_BASE}/videos`);
+    const res = await apiFetch('/videos');
+    if(res.status === 403) return document.getElementById('logout-btn').click();
+    
     const videos = await res.json();
     
     const tbody = document.getElementById('videos-tbody');
@@ -107,19 +158,24 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
     };
     
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_BASE}/videos/${id}` : `${API_BASE}/videos`;
+    const url = id ? `/videos/${id}` : `/videos`;
     
-    await fetch(url, {
+    const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
+    
+    const data = await res.json();
+    if(data.error) {
+        alert(data.error);
+        return;
+    }
     
     loadVideos();
 });
 
 window.editVideo = async (id) => {
-    const res = await fetch(`${API_BASE}/videos/${id}`);
+    const res = await apiFetch(`/videos/${id}`);
     const video = await res.json();
     
     document.getElementById('video-id').value = video.id;
@@ -136,7 +192,7 @@ window.editVideo = async (id) => {
 
 window.deleteVideo = async (id) => {
     if(confirm('Tem certeza? Isso apagará o vídeo e suas perguntas associadas.')) {
-        await fetch(`${API_BASE}/videos/${id}`, { method: 'DELETE' });
+        await apiFetch(`/videos/${id}`, { method: 'DELETE' });
         loadVideos();
     }
 };
@@ -155,7 +211,7 @@ document.getElementById('back-to-videos-btn').addEventListener('click', loadVide
 
 async function loadQuestions() {
     document.getElementById('question-form-container').classList.add('hidden');
-    const res = await fetch(`${API_BASE}/videos/${currentVideoId}/questions`);
+    const res = await apiFetch(`/videos/${currentVideoId}/questions`);
     const questions = await res.json();
     
     const tbody = document.getElementById('questions-tbody');
@@ -213,18 +269,18 @@ document.getElementById('question-form').addEventListener('submit', async (e) =>
     };
     
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_BASE}/questions/${id}` : `${API_BASE}/questions`;
+    const url = id ? `/questions/${id}` : `/questions`;
     
     try {
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         
-        if(!res.ok) {
-            const error = await res.json();
-            alert(error.error);
+        const data = await res.json();
+        
+        if(!res.ok || data.error) {
+            alert(data.error || 'Erro ao salvar pergunta');
             return;
         }
         
@@ -236,7 +292,7 @@ document.getElementById('question-form').addEventListener('submit', async (e) =>
 
 window.editQuestion = async (id) => {
     // For simplicity, we get all and filter
-    const res = await fetch(`${API_BASE}/videos/${currentVideoId}/questions`);
+    const res = await apiFetch(`/videos/${currentVideoId}/questions`);
     const questions = await res.json();
     const q = questions.find(x => x.id === id);
     if(q) {
@@ -259,7 +315,7 @@ window.editQuestion = async (id) => {
 
 window.deleteQuestion = async (id) => {
     if(confirm('Tem certeza em excluir esta pergunta?')) {
-        await fetch(`${API_BASE}/questions/${id}`, { method: 'DELETE' });
+        await apiFetch(`/questions/${id}`, { method: 'DELETE' });
         loadQuestions();
     }
 };

@@ -18,22 +18,94 @@ const db = new sqlite3.Database('./database.sqlite');
 
 // --- API ROUTES ---
 
-// Admin: Login (fake auth for MVP)
+// Admin / Super Admin Login
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
-  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND role = "admin"', [username, password], (err, user) => {
+  // Now checks for both admin and superadmin
+  db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
     if (user) {
-      res.json({ success: true, token: 'fake-admin-token' });
+      // Create a fake token that exposes the role and institution for MVP purposes
+      // In production use JWT!
+      const fakeToken = Buffer.from(JSON.stringify({
+        id: user.id,
+        role: user.role,
+        instituicao_id: user.instituicao_id
+      })).toString('base64');
+      
+      res.json({ success: true, token: fakeToken, role: user.role });
     } else {
       res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
   });
 });
 
+// Middleware to extract Fake JWT
+function extractUser(req) {
+    const auth = req.headers.authorization;
+    if(!auth) return null;
+    try {
+        const tokenStr = Buffer.from(auth.replace('Bearer ', ''), 'base64').toString('utf-8');
+        return JSON.parse(tokenStr);
+    } catch(e) { return null; }
+}
+
+// --- SUPER ADMIN ROUTES ---
+
+// List Institutions
+app.get('/api/superadmin/instituicoes', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'superadmin') return res.status(403).send('Forbidden');
+    
+    // Get all institutions with counts
+    db.all(`
+        SELECT i.*, 
+        (SELECT COUNT(*) FROM videos WHERE instituicao_id = i.id) as videos_cadastrados,
+        (SELECT COUNT(*) FROM questions WHERE instituicao_id = i.id) as perguntas_cadastradas
+        FROM instituicoes i
+    `, (err, rows) => {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Create Institution
+app.post('/api/superadmin/instituicoes', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'superadmin') return res.status(403).send('Forbidden');
+    
+    const { nome, limite_videos, limite_perguntas, logo_url } = req.body;
+    db.run('INSERT INTO instituicoes (nome, limite_videos, limite_perguntas, logo_url) VALUES (?, ?, ?, ?)',
+        [nome, limite_videos, limite_perguntas, logo_url || ''], function(err) {
+            if(err) return res.status(500).json({ error: err.message });
+            
+            // Auto-create a default admin for this institution
+            const instId = this.lastID;
+            const defaultUser = 'admin_' + instId;
+            db.run('INSERT INTO users (username, password, role, instituicao_id) VALUES (?, ?, ?, ?)',
+                [defaultUser, '123456', 'admin', instId], function(err2) {
+                    res.json({ success: true, instituicao_id: instId, admin_user: defaultUser, admin_pass: '123456' });
+            });
+    });
+});
+
+// Update Logo Configuration (Institution Admin)
+app.put('/api/instituicao/logo', (req, res) => {
+    const user = extractUser(req);
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    
+    db.run('UPDATE instituicoes SET logo_url = ? WHERE id = ?', [req.body.logo_url, user.instituicao_id], function(err) {
+        if(err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
 // Admin: List Videos
 app.get('/api/videos', (req, res) => {
-  db.all('SELECT * FROM videos', (err, rows) => {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  db.all('SELECT * FROM videos WHERE instituicao_id = ?', [user.instituicao_id], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -41,7 +113,10 @@ app.get('/api/videos', (req, res) => {
 
 // Admin: Get Video Form Details
 app.get('/api/videos/:id', (req, res) => {
-  db.get('SELECT * FROM videos WHERE id = ?', [req.params.id], (err, row) => {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  db.get('SELECT * FROM videos WHERE id = ? AND instituicao_id = ?', [req.params.id, user.instituicao_id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(row);
   });
@@ -49,22 +124,37 @@ app.get('/api/videos/:id', (req, res) => {
 
 // Admin: Create Video
 app.post('/api/videos', (req, res) => {
-  const { title, description, video_url, duration, status } = req.body;
-  if (!title || !video_url) return res.status(400).json({ error: 'Título e URL são obrigatórios' });
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  // Check Limits
+  db.get('SELECT limite_videos, (SELECT COUNT(*) FROM videos WHERE instituicao_id = ?) as current_count FROM instituicoes WHERE id = ?', 
+    [user.instituicao_id, user.instituicao_id], (err, inst) => {
+      
+      if(inst.current_count >= inst.limite_videos) {
+         return res.status(400).json({ error: 'Limite de vídeos da instituição atingido.' });
+      }
 
-  const stmt = db.prepare('INSERT INTO videos (title, description, video_url, duration, status) VALUES (?, ?, ?, ?, ?)');
-  stmt.run([title, description, video_url, duration, status || 'ativo'], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
+      const { title, description, video_url, duration, status } = req.body;
+      if (!title || !video_url) return res.status(400).json({ error: 'Título e URL são obrigatórios' });
+
+      const stmt = db.prepare('INSERT INTO videos (title, description, video_url, duration, status, instituicao_id) VALUES (?, ?, ?, ?, ?, ?)');
+      stmt.run([title, description, video_url, duration, status || 'ativo', user.instituicao_id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ id: this.lastID });
+      });
+      stmt.finalize();
   });
-  stmt.finalize();
 });
 
 // Admin: Update Video
 app.put('/api/videos/:id', (req, res) => {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
   const { title, description, video_url, duration, status } = req.body;
-  const stmt = db.prepare('UPDATE videos SET title = ?, description = ?, video_url = ?, duration = ?, status = ? WHERE id = ?');
-  stmt.run([title, description, video_url, duration, status, req.params.id], function(err) {
+  const stmt = db.prepare('UPDATE videos SET title = ?, description = ?, video_url = ?, duration = ?, status = ? WHERE id = ? AND instituicao_id = ?');
+  stmt.run([title, description, video_url, duration, status, req.params.id, user.instituicao_id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ updated: this.changes });
   });
@@ -73,7 +163,10 @@ app.put('/api/videos/:id', (req, res) => {
 
 // Admin: Delete Video
 app.delete('/api/videos/:id', (req, res) => {
-  db.run('DELETE FROM videos WHERE id = ?', [req.params.id], function(err) {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  db.run('DELETE FROM videos WHERE id = ? AND instituicao_id = ?', [req.params.id, user.instituicao_id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ deleted: this.changes });
   });
@@ -81,7 +174,10 @@ app.delete('/api/videos/:id', (req, res) => {
 
 // Admin: List Questions for Video
 app.get('/api/videos/:videoId/questions', (req, res) => {
-  db.all('SELECT * FROM questions WHERE video_id = ? ORDER BY minuto_disparo ASC', [req.params.videoId], (err, rows) => {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  db.all('SELECT * FROM questions WHERE video_id = ? AND instituicao_id = ? ORDER BY minuto_disparo ASC', [req.params.videoId, user.instituicao_id], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -89,38 +185,47 @@ app.get('/api/videos/:videoId/questions', (req, res) => {
 
 // Admin: Create Question
 app.post('/api/questions', (req, res) => {
-  const { video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo } = req.body;
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
   
-  if (!video_id || minuto_disparo == null || !enunciado || !alternativa_correta) {
-    return res.status(400).json({ error: 'Campos obrigatórios faltando' });
-  }
+  // Check limit
+  db.get('SELECT limite_perguntas, (SELECT COUNT(*) FROM questions WHERE instituicao_id = ?) as current_count FROM instituicoes WHERE id = ?', 
+    [user.instituicao_id, user.instituicao_id], (err, inst) => {
+        
+        if(inst.current_count >= inst.limite_perguntas) {
+             return res.status(400).json({ error: 'Limite de perguntas da instituição atingido.' });
+        }
 
-  // MVP: Validate Duplicate Time (basic)
-  db.get('SELECT id FROM questions WHERE video_id = ? AND minuto_disparo = ?', [video_id, minuto_disparo], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (row) return res.status(400).json({ error: 'Já existe uma pergunta neste minuto disparador.' });
-    
-    const stmt = db.prepare(`INSERT INTO questions 
-      (video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-      
-    stmt.run([video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo || 'ativo'], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
-    stmt.finalize();
+        const { video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo } = req.body;
+        
+        if (!video_id || minuto_disparo == null || !enunciado || !alternativa_correta) {
+            return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+        }
+
+        const stmt = db.prepare(`INSERT INTO questions 
+            (video_id, instituicao_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+            
+        stmt.run([video_id, user.instituicao_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo || 'ativo'], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ id: this.lastID });
+        });
+        stmt.finalize();
   });
 });
 
 // Admin: Update Question
 app.put('/api/questions/:id', (req, res) => {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
   const { video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo } = req.body;
   
   const stmt = db.prepare(`UPDATE questions SET 
-    video_id = ?, minuto_disparo = ?, enunciado = ?, alternativa_a = ?, alternativa_b = ?, alternativa_c = ?, alternativa_d = ?, alternativa_correta = ?, feedback_correto = ?, feedback_errado = ?, ativo = ? 
-    WHERE id = ?`);
+    minuto_disparo = ?, enunciado = ?, alternativa_a = ?, alternativa_b = ?, alternativa_c = ?, alternativa_d = ?, alternativa_correta = ?, feedback_correto = ?, feedback_errado = ?, ativo = ? 
+    WHERE id = ? AND instituicao_id = ?`);
     
-  stmt.run([video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo, req.params.id], function(err) {
+  stmt.run([minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_correta, feedback_correto, feedback_errado, ativo, req.params.id, user.instituicao_id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ updated: this.changes });
   });
@@ -129,7 +234,10 @@ app.put('/api/questions/:id', (req, res) => {
 
 // Admin: Delete Question
 app.delete('/api/questions/:id', (req, res) => {
-  db.run('DELETE FROM questions WHERE id = ?', [req.params.id], function(err) {
+  const user = extractUser(req);
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+  
+  db.run('DELETE FROM questions WHERE id = ? AND instituicao_id = ?', [req.params.id, user.instituicao_id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ deleted: this.changes });
   });
@@ -140,7 +248,7 @@ app.delete('/api/questions/:id', (req, res) => {
 
 // Student: Get video and associated questions
 app.get('/api/student/video/:id', (req, res) => {
-  db.get('SELECT id, title, description FROM videos WHERE id = ? AND status = "ativo"', [req.params.id], (err, video) => {
+  db.get('SELECT v.id, v.title, v.description, v.instituicao_id, i.logo_url FROM videos v LEFT JOIN instituicoes i ON v.instituicao_id = i.id WHERE v.id = ? AND v.status = "ativo"', [req.params.id], (err, video) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!video) return res.status(404).json({ error: 'Vídeo não encontrado ou inativo' });
     

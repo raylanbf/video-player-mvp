@@ -1,0 +1,4 @@
+// ... Database already created via CLI execution ...
+// Super Admin feature flag: True
+// To ease transition, we will modify server.js endpoints to require institution_id from token 
+// but since the MVP had a fake token, we'll implement a slightly improved login logic now.

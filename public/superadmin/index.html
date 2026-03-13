@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - VideoPlayer MVP</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <!-- Login Section -->
+    <div id="login-section" class="landing-body">
+        <div class="landing-container">
+            <h2>Login Super Admin</h2>
+            <form id="login-form" style="margin-top: 2rem;">
+                <div class="form-group">
+                    <input type="text" id="username" class="form-control" placeholder="Usuário (superadmin)" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" class="form-control" placeholder="Senha (super123)" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Entrar</button>
+                <div id="login-error" style="color: red; margin-top: 1rem; display: none;"></div>
+            </form>
+            <br>
+            <a href="/">Voltar para o Início</a>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="hidden">
+        <header class="admin-header">
+            <h2>Painel Geral - Instituições</h2>
+            <div>
+                <a href="/" class="btn btn-secondary btn-small">Ver Site</a>
+                <button id="logout-btn" class="btn btn-danger btn-small">Sair</button>
+            </div>
+        </header>
+
+        <main class="admin-container">
+            <!-- Inst List -->
+            <div id="inst-list-view" class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Instituições Cadastradas</h2>
+                    <button id="new-inst-btn" class="btn">Nova Instituição</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Vídeos (Uso/Limite)</th>
+                            <th>Perguntas (Uso/Limite)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inst-tbody">
+                        <!-- Loaded by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Inst Form -->
+            <div id="inst-form-view" class="card hidden">
+                <h2 id="inst-form-title">Cadastrar Instituição</h2>
+                <form id="inst-form">
+                    <div class="form-group">
+                        <label>Nome da Instituição</label>
+                        <input type="text" id="inst-nome" class="form-control" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Limite de Vídeos</label>
+                            <input type="number" id="inst-lvideo" class="form-control" value="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Limite de Perguntas</label>
+                            <input type="number" id="inst-lperg" class="form-control" value="50" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>URL da Logomarca (opicional)</label>
+                        <input type="url" id="inst-logo" class="form-control" placeholder="https://...">
+                    </div>
+                    
+                    <div id="inst-created-info" class="feedback-msg success hidden" style="margin-bottom: 1rem;">
+                        Instituição Criada! Conta Administrador gerada:<br>
+                        Usuário: <b id="new-admin-user"></b> <br>Senha: <b id="new-admin-pass"></b>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="btn">Salvar</button>
+                        <button type="button" id="cancel-inst-btn" class="btn btn-secondary">Voltar</button>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/superadmin/app.js"></script>
+</body>
+</html>

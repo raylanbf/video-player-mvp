@@ -5,13 +5,17 @@ info:
     API completa do sistema de videoaulas com perguntas interativas.
     
     ## Autenticação
-    A maioria dos endpoints de **Admin** e **SuperAdmin** exige um token JWT no header:
-    ```
-    Authorization: Bearer <token>
-    ```
-    Obtenha o token fazendo `POST /api/auth.php`.
+    A autenticação é feita via **sessão PHP** (cookie `PHPSESSID`).
     
-    Os endpoints de **Student** são públicos (sem autenticação).
+    Fluxo:
+    1. Faça `POST /api/auth.php` com `username` e `password`
+    2. O servidor define automaticamente um cookie de sessão
+    3. Todas as chamadas subsequentes usam esse cookie (o browser envia automaticamente)
+    4. Faça `DELETE /api/auth.php` para encerrar a sessão (logout)
+    
+    Para testar via curl, use `-c cookies.txt -b cookies.txt` para persistir o cookie.
+    
+    Os endpoints de **Student** são públicos (sem autenticação necessária).
   version: 1.0.0
   contact:
     name: VideoPlayer MVP
@@ -45,10 +49,11 @@ tags:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Sessão PHP gerenciada automaticamente pelo browser após o login
 
   schemas:
     LoginRequest:
@@ -68,13 +73,25 @@ components:
         success:
           type: boolean
           example: true
-        token:
-          type: string
-          example: eyJhbGciOiJIUzI1NiJ9...
         role:
           type: string
           enum: [admin, superadmin]
           example: admin
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            username:
+              type: string
+              example: admin@escola.com
+            role:
+              type: string
+              example: admin
+            instituicao_id:
+              type: integer
+              example: 1
 
     RegisterRequest:
       type: object
@@ -480,7 +497,7 @@ paths:
     post:
       tags: [Auth]
       summary: Login
-      description: Autentica um usuário (admin ou superadmin) e retorna um token JWT.
+      description: Autentica um usuário (admin ou superadmin) e inicia uma sessão PHP via cookie.
       requestBody:
         required: true
         content:

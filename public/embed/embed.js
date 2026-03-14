@@ -28,11 +28,11 @@ async function initEmbed() {
         
         const data = await res.json();
         
-        // Proxy token
-        const securityToken = btoa(userId + '-' + Date.now());
-        videoEl.src = data.video.video_url + '?token=' + securityToken;
+        // A URL do stream já vem formatada do backend (/api/student/stream.php?url=...)
+        // Não adicionamos token pois o stream.php foi simplificado
+        videoEl.src = data.video.video_url;
         
-        // Logo
+        // Logo da instituição
         if (data.video.logo_url) {
             const logoImg = document.createElement('img');
             logoImg.src = data.video.logo_url;
@@ -42,15 +42,15 @@ async function initEmbed() {
         
         questions = data.questions || [];
         
-        // Anti-Piracy Watermark
+        // Marca d'água dinâmica anti-cópia
         startDynamicWatermark(userId);
         
-        // Progress Logic
+        // Carrega progresso anterior
         await loadProgress();
         
     } catch (err) {
         console.error(err);
-        document.body.innerHTML = '<h2 style="color:white; text-align:center; padding-top:20%;">Erro ao carregar o vídeo.</h2>';
+        document.body.innerHTML = '<h2 style="color:white; text-align:center; padding-top:20%;">Erro ao carregar o vídeo. Verifique o ID do vídeo e tente novamente.</h2>';
     }
 }
 
@@ -170,20 +170,19 @@ async function submitAnswer(selectedLetter, btnElement) {
     const feedbackEl = document.getElementById('modal-feedback');
     const isCorrect = selectedLetter === currentQuestion.alternativa_correta.toLowerCase();
     
-    // Save answer via microservice PHP logic simulation (Node.js fallback for now via API)
+    // Salva a resposta no servidor
     try {
         await fetch(`${API_BASE}/student/answer.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                user_id: userId,
-                video_id: videoId,
-                instituicao_id: instituicaoId,
-                curso_id: cursoId,
-                modulo_id: moduloId,
-                question_id: currentQuestion.id,
-                selected_option: selectedLetter,
-                is_correct: isCorrect
+                user_id:          userId,
+                video_id:         videoId,
+                instituicao_id:   instituicaoId,
+                curso_id:         cursoId,
+                modulo_id:        moduloId,
+                question_id:      currentQuestion.id,
+                resposta_marcada: selectedLetter  // campo correto esperado pelo answer.php
             })
         });
     } catch(e) { console.error('Error saving answer', e); }

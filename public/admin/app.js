@@ -13,51 +13,73 @@ const cursosListView = document.getElementById('cursos-list-view');
 const modulosListView = document.getElementById('modulos-list-view');
 
 let currentVideoId = null;
-let token = localStorage.getItem('adminToken');
 
-// API Wrapper - usa caminhos diretos sem depender de .htaccess
+// API Wrapper - usa sessão PHP via cookie (sem JWT)
 async function apiFetch(endpoint, options = {}) {
     const defaultHeaders = { 'Content-Type': 'application/json' };
-    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
     options.headers = { ...defaultHeaders, ...options.headers };
+    options.credentials = 'include'; // envia/recebe cookie de sessão PHP
     return fetch(`${API_BASE}${endpoint}`, options);
 }
 
-// Auth check
-if (token) {
-    showDashboard();
-}
+// Verifica se já tem sessão ativa ao carregar a página
+(async () => {
+    try {
+        const res = await fetch(`${API_BASE}/auth.php`, { credentials: 'include' });
+        const data = await res.json();
+        if (data.authenticated) {
+            showDashboard();
+        }
+    } catch (e) {
+        // sem sessão, mantém tela de login
+    }
+})();
 
 // Login
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('login-error');
 
     try {
         const res = await fetch(`${API_BASE}/auth.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ username, password })
         });
-        const data = await res.json();
-        if (data.success && data.role === 'admin') {
-            localStorage.setItem('adminToken', data.token);
-            token = data.token;
+
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            // PHP retornou HTML de erro ao invés de JSON
+            errorEl.innerText = `Erro do servidor (HTTP ${res.status}). Verifique os logs do PHP.`;
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        if (data.success && (data.role === 'admin' || data.role === 'superadmin')) {
             showDashboard();
         } else {
-            document.getElementById('login-error').innerText = data.message || 'Acesso negado';
-            document.getElementById('login-error').style.display = 'block';
+            errorEl.innerText = data.message || 'Acesso negado';
+            errorEl.style.display = 'block';
         }
     } catch (err) {
+        errorEl.innerText = 'Sem conexão com o servidor. Verifique se o servidor está online.';
+        errorEl.style.display = 'block';
         console.error(err);
     }
 });
 
+
 // Logout
-logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('adminToken');
-    token = null;
+logoutBtn.addEventListener('click', async () => {
+    await fetch(`${API_BASE}/auth.php`, {
+        method: 'DELETE',
+        credentials: 'include'
+    });
     dashboardSection.classList.add('hidden');
     loginSection.classList.remove('hidden');
 });
@@ -267,7 +289,12 @@ async function loadVideos() {
     videosListView.classList.remove('hidden');
 
     const res = await apiFetch('/admin/videos.php');
-    if (res.status === 403) return document.getElementById('logout-btn').click();
+    if (res.status === 401) {
+        // Sessão expirou
+        dashboardSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+        return;
+    }
 
     const videos = await res.json();
 
@@ -277,9 +304,11 @@ async function loadVideos() {
     videos.forEach(v => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${v.title}</td>
-            <td>${v.duration}</td>
-            <td>${v.status}</td>
+            <td><strong>${v.title}</strong></td>
+            <td><span style="color:#6b7280;font-size:0.9em;">${v.curso_nome || '<em>—</em>'}</span></td>
+            <td><span style="color:#6b7280;font-size:0.9em;">${v.modulo_nome || '<em>—</em>'}</span></td>
+            <td>${v.duration} min</td>
+            <td><span class="status-badge ${v.status}">${v.status}</span></td>
             <td>
                 <button onclick="editVideo(${v.id})" class="btn btn-small btn-secondary">Editar</button>
                 <button onclick="manageQuestions(${v.id}, '${v.title.replace(/'/g, "\\'")}')" class="btn btn-small">Perguntas</button>

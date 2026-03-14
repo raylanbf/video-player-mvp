@@ -1,0 +1,1131 @@
+openapi: 3.0.3
+info:
+  title: VideoPlayer MVP API
+  description: |
+    API completa do sistema de videoaulas com perguntas interativas.
+    
+    ## Autenticação
+    A maioria dos endpoints de **Admin** e **SuperAdmin** exige um token JWT no header:
+    ```
+    Authorization: Bearer <token>
+    ```
+    Obtenha o token fazendo `POST /api/auth.php`.
+    
+    Os endpoints de **Student** são públicos (sem autenticação).
+  version: 1.0.0
+  contact:
+    name: VideoPlayer MVP
+    url: https://redeads.shop
+
+servers:
+  - url: https://redeads.shop/api
+    description: Produção (Hostinger)
+  - url: http://localhost/api
+    description: Desenvolvimento Local
+
+tags:
+  - name: Auth
+    description: Login e registro de usuários
+  - name: Admin - Vídeos
+    description: CRUD de vídeos (requer token de admin)
+  - name: Admin - Perguntas
+    description: CRUD de perguntas interativas (requer token de admin)
+  - name: Admin - Cursos
+    description: CRUD de cursos (requer token de admin)
+  - name: Admin - Módulos
+    description: CRUD de módulos (requer token de admin)
+  - name: Admin - Configurações
+    description: Configurações da instituição (requer token de admin)
+  - name: Student - Player
+    description: Endpoints públicos para o player do aluno
+  - name: SuperAdmin - Instituições
+    description: Gerenciamento de instituições (requer token de superadmin)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: admin123
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        role:
+          type: string
+          enum: [admin, superadmin]
+          example: admin
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: novo_admin
+        password:
+          type: string
+          example: senha123
+        role:
+          type: string
+          enum: [admin, superadmin]
+          default: admin
+          example: admin
+
+    Video:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Introdução ao PHP
+        description:
+          type: string
+          example: Neste vídeo você aprenderá os fundamentos do PHP
+        video_url:
+          type: string
+          example: https://example.com/video.mp4
+        duration:
+          type: integer
+          description: Duração em minutos
+          example: 30
+        status:
+          type: string
+          enum: [ativo, inativo]
+          example: ativo
+        instituicao_id:
+          type: integer
+          example: 1
+        curso_id:
+          type: integer
+          example: 1
+        modulo_id:
+          type: integer
+          example: 1
+
+    VideoRequest:
+      type: object
+      required: [title, video_url, curso_id, modulo_id]
+      properties:
+        title:
+          type: string
+          example: Introdução ao PHP
+        description:
+          type: string
+          example: Neste vídeo você aprenderá os fundamentos do PHP
+        video_url:
+          type: string
+          example: https://example.com/video.mp4
+        duration:
+          type: integer
+          example: 30
+        curso_id:
+          type: integer
+          example: 1
+        modulo_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ativo, inativo]
+          default: ativo
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        video_id:
+          type: integer
+          example: 1
+        minuto_disparo:
+          type: number
+          format: float
+          description: Momento em minutos(decimal) em que a pergunta é disparada
+          example: 1.5
+        enunciado:
+          type: string
+          example: O que é uma variável em PHP?
+        alternativa_a:
+          type: string
+          example: Um container de dados
+        alternativa_b:
+          type: string
+          example: Uma função
+        alternativa_c:
+          type: string
+          example: Uma classe
+        alternativa_d:
+          type: string
+          example: Um arquivo
+        alternativa_correta:
+          type: string
+          enum: [a, b, c, d]
+          example: a
+        feedback_correto:
+          type: string
+          example: Correto! Variáveis armazenam dados.
+        feedback_errado:
+          type: string
+          example: Incorreto. Uma variável é um container de dados.
+        ativo:
+          type: string
+          enum: [ativo, inativo]
+          example: ativo
+
+    QuestionRequest:
+      type: object
+      required: [video_id, minuto_disparo, enunciado, alternativa_a, alternativa_b, alternativa_correta]
+      properties:
+        video_id:
+          type: integer
+          example: 1
+        minuto_disparo:
+          type: number
+          example: 1.5
+        enunciado:
+          type: string
+          example: O que é uma variável em PHP?
+        alternativa_a:
+          type: string
+          example: Um container de dados
+        alternativa_b:
+          type: string
+          example: Uma função
+        alternativa_c:
+          type: string
+          example: Uma classe
+        alternativa_d:
+          type: string
+          example: Um arquivo
+        alternativa_correta:
+          type: string
+          enum: [a, b, c, d]
+          example: a
+        feedback_correto:
+          type: string
+          example: Correto! Variáveis armazenam dados.
+        feedback_errado:
+          type: string
+          example: Incorreto. Uma variável é um container de dados.
+
+    Curso:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: Curso de PHP
+        instituicao_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ativo, inativo]
+          example: ativo
+
+    CursoRequest:
+      type: object
+      required: [nome]
+      properties:
+        nome:
+          type: string
+          example: Curso de PHP
+        status:
+          type: string
+          enum: [ativo, inativo]
+          default: ativo
+
+    Modulo:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: Módulo 1 - Introdução
+        curso_id:
+          type: integer
+          example: 1
+        curso_nome:
+          type: string
+          example: Curso de PHP
+        instituicao_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ativo, inativo]
+          example: ativo
+
+    ModuloRequest:
+      type: object
+      required: [nome, curso_id]
+      properties:
+        nome:
+          type: string
+          example: Módulo 1 - Introdução
+        curso_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ativo, inativo]
+          default: ativo
+
+    Instituicao:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: Escola Tech
+        limite_videos:
+          type: integer
+          example: 10
+        limite_perguntas:
+          type: integer
+          example: 50
+        logo_url:
+          type: string
+          example: https://example.com/logo.png
+        status:
+          type: string
+          enum: [ativo, inativo]
+          example: ativo
+        videos_cadastrados:
+          type: integer
+          example: 3
+        perguntas_cadastradas:
+          type: integer
+          example: 12
+
+    InstituicaoCreateRequest:
+      type: object
+      required: [nome, admin_email, admin_pass]
+      properties:
+        nome:
+          type: string
+          example: Escola Tech
+        limite_videos:
+          type: integer
+          default: 10
+          example: 10
+        limite_perguntas:
+          type: integer
+          default: 50
+          example: 50
+        logo_url:
+          type: string
+          example: https://example.com/logo.png
+        admin_email:
+          type: string
+          description: Username/email do administrador principal da instituição
+          example: admin@escolatech.com
+        admin_pass:
+          type: string
+          example: senha_forte_123
+
+    StudentVideoResponse:
+      type: object
+      properties:
+        video:
+          $ref: '#/components/schemas/Video'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+
+    ProgressResponse:
+      type: object
+      properties:
+        current_time:
+          type: number
+          description: Tempo em segundos onde o aluno parou
+          example: 342.5
+        concluido:
+          type: integer
+          enum: [0, 1]
+          example: 0
+        answered_questions:
+          type: array
+          items:
+            type: integer
+          description: IDs das perguntas já respondidas corretamente
+
+    AnswerRequest:
+      type: object
+      required: [user_id, video_id, question_id, resposta_marcada]
+      properties:
+        user_id:
+          type: string
+          example: demo-student-123
+        video_id:
+          type: integer
+          example: 1
+        question_id:
+          type: integer
+          example: 1
+        resposta_marcada:
+          type: string
+          enum: [a, b, c, d]
+          example: a
+
+    AnswerResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        acertou:
+          type: boolean
+          example: true
+        feedback_correto:
+          type: string
+          example: Correto! Variáveis armazenam dados.
+        feedback_errado:
+          type: string
+          example: Incorreto. Uma variável é um container de dados.
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Acesso negado
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+paths:
+  # ==========================================
+  # AUTH
+  # ==========================================
+  /auth.php:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Autentica um usuário (admin ou superadmin) e retorna um token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /register.php:
+    post:
+      tags: [Auth]
+      summary: Registrar novo usuário
+      description: Cria uma nova conta de admin ou superadmin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Conta criada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Conta criada com sucesso! Faça Login.
+        '400':
+          description: Dados inválidos ou usuário já existente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================
+  # ADMIN - VIDEOS
+  # ==========================================
+  /admin/videos.php:
+    get:
+      tags: [Admin - Vídeos]
+      summary: Listar vídeos
+      description: Retorna todos os vídeos da instituição autenticada. Se `?id=` for informado, retorna apenas um vídeo.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: ID do vídeo (opcional - para buscar apenas um)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de vídeos ou vídeo único
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  - $ref: '#/components/schemas/Video'
+        '401':
+          description: Não autorizado
+        '403':
+          description: Sem permissão
+    post:
+      tags: [Admin - Vídeos]
+      summary: Criar vídeo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRequest'
+      responses:
+        '200':
+          description: Vídeo criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 5
+        '403':
+          description: Limite de vídeos atingido
+    put:
+      tags: [Admin - Vídeos]
+      summary: Atualizar vídeo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRequest'
+      responses:
+        '200':
+          description: Vídeo atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: boolean
+                    example: true
+    delete:
+      tags: [Admin - Vídeos]
+      summary: Excluir vídeo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vídeo excluído
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+
+  # ==========================================
+  # ADMIN - QUESTIONS
+  # ==========================================
+  /admin/questions.php:
+    get:
+      tags: [Admin - Perguntas]
+      summary: Listar perguntas de um vídeo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: videoId
+          in: query
+          required: true
+          description: ID do vídeo
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de perguntas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Question'
+    post:
+      tags: [Admin - Perguntas]
+      summary: Criar pergunta
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      responses:
+        '200':
+          description: Pergunta criada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 3
+        '403':
+          description: Limite de perguntas atingido
+    put:
+      tags: [Admin - Perguntas]
+      summary: Atualizar pergunta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      responses:
+        '200':
+          description: Pergunta atualizada
+    delete:
+      tags: [Admin - Perguntas]
+      summary: Excluir pergunta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pergunta excluída
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+
+  # ==========================================
+  # ADMIN - CURSOS
+  # ==========================================
+  /admin/cursos.php:
+    get:
+      tags: [Admin - Cursos]
+      summary: Listar cursos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de cursos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Curso'
+    post:
+      tags: [Admin - Cursos]
+      summary: Criar curso
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CursoRequest'
+      responses:
+        '200':
+          description: Curso criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 2
+    put:
+      tags: [Admin - Cursos]
+      summary: Atualizar curso
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CursoRequest'
+      responses:
+        '200':
+          description: Curso atualizado
+    delete:
+      tags: [Admin - Cursos]
+      summary: Excluir curso
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Curso excluído
+
+  # ==========================================
+  # ADMIN - MÓDULOS
+  # ==========================================
+  /admin/modulos.php:
+    get:
+      tags: [Admin - Módulos]
+      summary: Listar módulos
+      description: Lista todos os módulos da instituição. Use `?curso_id=` para filtrar por curso.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: curso_id
+          in: query
+          description: Filtrar por ID do curso
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de módulos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Modulo'
+    post:
+      tags: [Admin - Módulos]
+      summary: Criar módulo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuloRequest'
+      responses:
+        '200':
+          description: Módulo criado
+    put:
+      tags: [Admin - Módulos]
+      summary: Atualizar módulo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuloRequest'
+      responses:
+        '200':
+          description: Módulo atualizado
+    delete:
+      tags: [Admin - Módulos]
+      summary: Excluir módulo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Módulo excluído
+
+  # ==========================================
+  # ADMIN - CONFIGURAÇÕES
+  # ==========================================
+  /admin/instituicao_logo.php:
+    put:
+      tags: [Admin - Configurações]
+      summary: Atualizar logo da instituição
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [logo_url]
+              properties:
+                logo_url:
+                  type: string
+                  example: https://example.com/nova-logo.png
+      responses:
+        '200':
+          description: Logo atualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  # ==========================================
+  # STUDENT
+  # ==========================================
+  /student/video.php:
+    get:
+      tags: [Student - Player]
+      summary: Carregar vídeo e perguntas para o aluno
+      description: Retorna os dados do vídeo e todas as perguntas ativas associadas a ele.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: ID do vídeo
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Dados do vídeo e perguntas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentVideoResponse'
+        '404':
+          description: Vídeo não encontrado
+
+  /student/progress.php:
+    get:
+      tags: [Student - Player]
+      summary: Buscar progresso do aluno
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: ID único do aluno (gerado no frontend)
+          schema:
+            type: string
+            example: demo-student-123
+        - name: videoId
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Progresso do aluno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+    post:
+      tags: [Student - Player]
+      summary: Salvar progresso do aluno
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, video_id]
+              properties:
+                user_id:
+                  type: string
+                  example: demo-student-123
+                video_id:
+                  type: integer
+                  example: 1
+                current_time:
+                  type: number
+                  description: Tempo atual em segundos
+                  example: 342.5
+                ultima_pergunta_respondida:
+                  type: integer
+                  example: 2
+                concluido:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Progresso salvo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /student/answer.php:
+    get:
+      tags: [Student - Player]
+      summary: Buscar respostas anteriores do aluno
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: demo-student-123
+        - name: videoId
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de respostas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    question_id:
+                      type: integer
+                      example: 1
+                    is_correct:
+                      type: integer
+                      enum: [0, 1]
+                      example: 1
+    post:
+      tags: [Student - Player]
+      summary: Submeter resposta do aluno
+      description: Valida a resposta do aluno contra o banco de dados e retorna o feedback correto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerRequest'
+      responses:
+        '200':
+          description: Resposta processada com feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+        '404':
+          description: Pergunta não encontrada
+
+  # ==========================================
+  # SUPERADMIN
+  # ==========================================
+  /superadmin/instituicoes.php:
+    get:
+      tags: [SuperAdmin - Instituições]
+      summary: Listar todas as instituições
+      description: Retorna todas as instituições com contagem de uso (vídeos e perguntas).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de instituições
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instituicao'
+        '403':
+          description: Requer perfil superadmin
+    post:
+      tags: [SuperAdmin - Instituições]
+      summary: Criar nova instituição
+      description: Cria uma instituição e automaticamente cria o usuário administrador dela.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstituicaoCreateRequest'
+      responses:
+        '200':
+          description: Instituição criada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  instituicao_id:
+                    type: integer
+                    example: 3
+    put:
+      tags: [SuperAdmin - Instituições]
+      summary: Atualizar instituição
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                  example: Escola Tech Atualizada
+                limite_videos:
+                  type: integer
+                  example: 20
+                limite_perguntas:
+                  type: integer
+                  example: 100
+                logo_url:
+                  type: string
+                  example: https://example.com/logo.png
+                status:
+                  type: string
+                  enum: [ativo, inativo]
+                  example: ativo
+      responses:
+        '200':
+          description: Instituição atualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  updated:
+                    type: boolean
+                    example: true
+    delete:
+      tags: [SuperAdmin - Instituições]
+      summary: Excluir instituição
+      description: Exclui a instituição e todos os seus dados relacionados (cascade).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Instituição excluída
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true

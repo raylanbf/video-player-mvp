@@ -10,7 +10,6 @@ if ($method === 'GET') {
     if (!$id) sendJson(['error' => 'Video ID missing'], 400);
 
     // Busca os dados do vídeo + logo da instituição
-    // NOTA: sem filtro de status para garantir que o embed funcione
     $stmt = $pdo->prepare("
         SELECT v.*, i.logo_url 
         FROM videos v 
@@ -22,11 +21,11 @@ if ($method === 'GET') {
 
     if (!$video) sendJson(['error' => 'Video not found', 'id_buscado' => $id], 404);
 
-    // Substitui a URL real pela URL do proxy (para esconder o link original)
-    $realUrl = $video['video_url'];
-    $video['video_url'] = '/api/student/stream.php?url=' . urlencode(base64_encode($realUrl));
+    // Retorna a URL do vídeo diretamente (sem proxy)
+    // O stream.php pode ser reativado depois para maior segurança
+    // $video['video_url'] = '/api/student/stream.php?url=' . urlencode(base64_encode($video['video_url']));
 
-    // Busca as perguntas do vídeo (ativas)
+    // Busca as perguntas do vídeo
     $stmtQ = $pdo->prepare("
         SELECT id, minuto_disparo, enunciado,
                alternativa_a, alternativa_b, alternativa_c, alternativa_d,

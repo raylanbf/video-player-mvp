@@ -38,6 +38,8 @@ tags:
     description: Configurações da instituição (requer token de admin)
   - name: Student - Player
     description: Endpoints públicos para o player do aluno
+  - name: Admin - Embed
+    description: Geração de códigos de incorporação (iframe) para vídeos
   - name: SuperAdmin - Instituições
     description: Gerenciamento de instituições (requer token de superadmin)
 
@@ -412,6 +414,51 @@ components:
         feedback_errado:
           type: string
           example: Incorreto. Uma variável é um container de dados.
+
+    EmbedResponse:
+      type: object
+      properties:
+        video_id:
+          type: integer
+          example: 1
+        video_title:
+          type: string
+          example: Introdução ao PHP
+        embed_url:
+          type: string
+          description: URL direta do player para uso em iframes ou links
+          example: https://redeads.shop/embed/player.html?v=1&i=1&c=1&m=1&u=aluno123
+        iframe_code:
+          type: string
+          description: HTML completo pronto para colar em qualquer plataforma
+          example: '<iframe src="https://redeads.shop/embed/player.html?v=1&i=1&c=1&m=1&u=aluno123" width="100%" height="600" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>'
+        params:
+          type: object
+          description: Parâmetros individuais da URL do embed
+          properties:
+            v:
+              type: integer
+              description: ID do vídeo
+              example: 1
+            i:
+              type: integer
+              description: ID da instituição
+              example: 1
+            c:
+              type: integer
+              description: ID do curso
+              example: 1
+            m:
+              type: integer
+              description: ID do módulo
+              example: 1
+            u:
+              type: string
+              description: ID do aluno
+              example: aluno123
+        nota:
+          type: string
+          example: Substitua [ID_DO_ALUNO] pelo identificador único do usuário na sua plataforma
 
     ErrorResponse:
       type: object
@@ -1010,6 +1057,130 @@ paths:
                 $ref: '#/components/schemas/AnswerResponse'
         '404':
           description: Pergunta não encontrada
+
+  # ==========================================
+  # ADMIN - EMBED
+  # ==========================================
+  /admin/embed.php:
+    get:
+      tags: [Admin - Embed]
+      summary: Gerar código de incorporação (iframe) de um vídeo
+      description: |
+        Retorna o código HTML `<iframe>` pronto para ser colado em qualquer plataforma (LMS, site, blog, etc.).
+        
+        O `student_id` deve ser substituído pelo identificador único do seu aluno (matrícula, e-mail, ID interno).
+        Isso permite rastrear o progresso individual de cada aluno no player.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: video_id
+          in: query
+          required: true
+          description: ID do vídeo para o qual gerar o embed
+          schema:
+            type: integer
+            example: 1
+        - name: student_id
+          in: query
+          required: false
+          description: Identificador do aluno (matrícula, e-mail, etc.). Padrão é `[ID_DO_ALUNO]`.
+          schema:
+            type: string
+            example: aluno001
+        - name: width
+          in: query
+          required: false
+          description: Largura do iframe. Padrão é `100%`.
+          schema:
+            type: string
+            example: "100%"
+        - name: height
+          in: query
+          required: false
+          description: Altura do iframe em pixels. Padrão é `600`.
+          schema:
+            type: string
+            example: "600"
+      responses:
+        '200':
+          description: Código de incorporação gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedResponse'
+        '400':
+          description: video_id não informado
+        '404':
+          description: Vídeo não encontrado ou sem permissão
+
+  /embed/player.html:
+    get:
+      tags: [Admin - Embed]
+      summary: Player de vídeo para embed (iframe)
+      description: |
+        Página HTML do player isolado, projetada para ser incorporada via `<iframe>` em qualquer plataforma.
+
+        **Funcionalidades do player:**
+        - ▶️ Reproduz vídeo com perguntas interativas nos momentos definidos
+        - 🔒 Anti-skip: impede o aluno de avançar o vídeo antes de responder
+        - 💧 Marca d'água dinâmica com o ID do aluno (anti-pirataria)
+        - 💾 Salva progresso automaticamente a cada 5 segundos
+        - ✅ Registra respostas corretas/incorretas no backend
+
+        **Exemplo de uso:**
+        ```html
+        <iframe
+          src="https://redeads.shop/embed/player.html?v=1&i=1&c=1&m=1&u=aluno001"
+          width="100%"
+          height="600"
+          frameborder="0"
+          allowfullscreen
+          allow="autoplay; encrypted-media">
+        </iframe>
+        ```
+      parameters:
+        - name: v
+          in: query
+          required: true
+          description: ID do vídeo
+          schema:
+            type: integer
+            example: 1
+        - name: i
+          in: query
+          required: true
+          description: ID da instituição
+          schema:
+            type: integer
+            example: 1
+        - name: c
+          in: query
+          required: true
+          description: ID do curso
+          schema:
+            type: integer
+            example: 1
+        - name: m
+          in: query
+          required: true
+          description: ID do módulo
+          schema:
+            type: integer
+            example: 1
+        - name: u
+          in: query
+          required: true
+          description: Identificador único do aluno (matrícula, e-mail, ID externo, etc.)
+          schema:
+            type: string
+            example: aluno001
+      responses:
+        '200':
+          description: Página HTML do player carregada com sucesso
+          content:
+            text/html:
+              schema:
+                type: string
 
   # ==========================================
   # SUPERADMIN

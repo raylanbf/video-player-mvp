@@ -20,6 +20,7 @@ RewriteRule ^instituicoes$ superadmin/instituicoes.php [QSA,L]
 # ==========================================
 # Permite a API do admin sem precisar bater na pasta
 RewriteRule ^instituicao/logo\.php$ admin/instituicao_logo.php [QSA,L]
+RewriteRule ^admin/embed\.php$ admin/embed.php [QSA,L]
 
 RewriteRule ^videos/([0-9]+)/questions/?$ admin/questions.php?videoId=$1 [QSA,L]
 RewriteRule ^videos/([0-9]+)/?$ admin/videos.php?id=$1 [QSA,L]

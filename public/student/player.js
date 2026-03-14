@@ -43,9 +43,8 @@ async function init() {
         }
         const data = await res.json();
         
-        // Use a generated session token for the request
-        const securityToken = btoa(userId + '-' + Date.now());
-        videoEl.src = data.video.video_url + '?token=' + securityToken;
+        // A URL já vem formatada pelo backend como /api/student/stream.php?url=...
+        videoEl.src = data.video.video_url;
         
         videoTitle.innerText = data.video.title;
         videoDesc.innerText = data.video.description || '';

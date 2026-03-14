@@ -1,0 +1,43 @@
+RewriteEngine On
+
+# Allow CORS Origins (useful if frontend is ever split)
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+
+# Preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# ==========================================
+# SUPERADMIN ROUTES
+# ==========================================
+RewriteRule ^instituicoes/(.*)$ superadmin/instituicoes.php?id=$1 [QSA,L]
+RewriteRule ^instituicoes$ superadmin/instituicoes.php [QSA,L]
+
+# ==========================================
+# ADMIN ROUTES
+# ==========================================
+RewriteRule ^videos/([0-9]+)/questions$ admin/questions.php?videoId=$1 [QSA,L]
+RewriteRule ^videos/([0-9]+)$ admin/videos.php?id=$1 [QSA,L]
+RewriteRule ^videos$ admin/videos.php [QSA,L]
+
+RewriteRule ^questions/([0-9]+)$ admin/questions.php?id=$1 [QSA,L]
+RewriteRule ^questions$ admin/questions.php [QSA,L]
+
+RewriteRule ^cursos/([0-9]+)$ admin/cursos.php?id=$1 [QSA,L]
+RewriteRule ^cursos$ admin/cursos.php [QSA,L]
+
+RewriteRule ^modulos/([0-9]+)$ admin/modulos.php?id=$1 [QSA,L]
+RewriteRule ^modulos$ admin/modulos.php [QSA,L]
+
+# ==========================================
+# STUDENT ROUTES
+# ==========================================
+RewriteRule ^student/video$ student/video.php [QSA,L]
+RewriteRule ^student/progress$ student/progress.php [QSA,L]
+RewriteRule ^student/answer$ student/answer.php [QSA,L]
+
+# Fallbacks for root api files if they forget .php
+RewriteRule ^auth$ auth.php [QSA,L]
+RewriteRule ^register$ register.php [QSA,L]

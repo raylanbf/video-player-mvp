@@ -1,6 +1,7 @@
 # Video Player MVP
 
-Um Produto Mínimo Viável (MVP) de um sistema de videoaulas com perguntas interativas obrigatórias. Desenvolvido com frontend vanilla (HTML/CSS/JS), backend Node.js (Express) e banco de dados SQLite.
+Um Produto Mínimo Viável (MVP) de um sistema de videoaulas com perguntas interativas obrigatórias. 
+Desenvolvido com **Frontend Vanilla (HTML/CSS/JS)** e **Backend em PHP / MySQL**, otimizado para rodar em hospedagens compartilhadas (como a **Hostinger**) usando **Apache (.htaccess)**.
 
 ## Funcionalidades
 
@@ -11,55 +12,66 @@ Um Produto Mínimo Viável (MVP) de um sistema de videoaulas com perguntas inter
 - **Área do Aluno:**
   - Player de vídeo customizado.
   - Bloqueio de avanço para capítulos não assistidos.
-  - Video pausa automaticamente no minuto configurado pelo professor.
+  - Vídeo pausa automaticamente no minuto configurado pelo professor.
   - Modal de pergunta obrigatória; avanço só é liberado em caso de acerto.
-  - Progresso salvo localmente e na API.
+  - Progresso salvo na API.
 
 ## Tecnologias
 
-- **Backend:** Node.js, Express, SQLite3.
+- **Backend:** PHP 7.4+ (Autenticação via JWT Simples e Roteamento via `.htaccess`).
+- **Banco de Dados:** MySQL / MariaDB (via PDO).
 - **Frontend:** HTML5, CSS3, JavaScript Vanilla.
 
-## Pré-requisitos
+---
 
-- [Node.js](https://nodejs.org/) (versão 14+ recomendada).
+## 🚀 Deploy e Instalação na Hostinger (via GitHub)
 
-## Instalação e Execução
+Este projeto está configurado para publicação direta via GitHub para a Hostinger.
 
-1. No terminal, acesse a pasta raiz do projeto.
-2. Instale as dependências executando:
-   ```bash
-   npm install
-   ```
-3. Inicialize o banco de dados e os dados de exemplo (`seed`):
-   ```bash
-   node init-db.js
-   ```
-   *Nota: O seed já adiciona um usuário admin, um vídeo hospedado em servidor público (BigBuckBunny.mp4) e 4 perguntas distribuídas em minutos iniciais para testes (min 2, 4, 6, 8).*
+### Passos para a Hostinger:
 
-4. Inicie o servidor web da aplicação:
-   ```bash
-   node server.js
-   ```
+1. **Configurar o Banco de Dados:**
+   - Acesse o painel da Hostinger (hPanel) > Banco de Dados > Bancos de Dados MySQL.
+   - Crie um novo banco de dados (ex: `u123456_videoplayer`) e grave o usuário e senha criados.
+   - Abra o **phpMyAdmin** na Hostinger e importe o arquivo `schema_completo.sql` presente na raiz deste projeto.
+   - *(O script SQL já insere dados de exemplo (Seed) incluindo um Vídeo e duas Perguntas de teste).*
 
-5. O servidor estará rodando em: `http://localhost:3000`
+2. **Editar as Credenciais do Banco (`api/db.php`):**
+   - No GitHub (ou localmente antes do push), edite o arquivo `api/db.php`.
+   - Modifique o bloco `else` (Configuração Produção) com os dados gerados no passo 1.
+     ```php
+     $host = 'srvXXXX.hstgr.io'; // Ou localhost se for o padrão da Hostinger
+     $db   = 'u123456_videoplayer';
+     $user = 'u123456_admin';
+     $pass = 'SuaSenhaForteAqui';
+     ```
 
-## Fluxo de Uso Teste
+3. **Deploy via GitHub:**
+   - Configure a ferramenta de **Git/GitHub da Hostinger** (no hPanel) para apontar para o seu repositório deste projeto.
+   - Configure para fazer o deploy automático (webhook) na branch `main`.
+   - Assim que fizer o deploy, os arquivos estarão online.
+
+### Roteamento Apache (Garantia de Funcionamento)
+O painel administrativo consome URLs amigáveis (ex: `/api/videos`). Para que o PHP da Hostinger entenda, há um arquivo `api/.htaccess` nativo neste projeto que faz esse mapeamento invisível sob os panos.
+
+---
+
+## Fluxo de Uso e Teste
 
 **Administrador:**
-1. Acesse `http://localhost:3000` e clique em "Área do Administrador".
+1. Acesse o seu domínio e clique em "Área do Administrador".
 2. Acesse com:
    - Usuário: **admin**
-   - Senha: **admin123**
-3. Visualize o vídeo de exemplo ou crie novos.
-4. Clique em "Perguntas" na tabela de vídeos para customizar as interações.
+   - Senha: **admin123** *(Este usuário foi inserido via `schema_completo.sql`)*
+3. Clique em "Perguntas" na tabela de vídeos para customizar as interações ou crie vídeos novos.
 
 **Aluno:**
-1. Acesse `http://localhost:3000` e clique em "Área do Aluno".
+1. Acesse o seu domínio e clique em "Área do Aluno".
 2. Observe que ao tentar avançar na linha do tempo para além do primeiro ponto de bloqueio, o vídeo irá retroceder automaticamente.
-3. Ao longo da reprodução, o vídeo pausará e mostrará o modal com a pergunta correspondente àquele trecho.
-4. Se o aluno errar, receberá o feedback negativo e poderá tentar novamente. Se acertar, o vídeo continua de onde parou.
+3. Ao longo da reprodução, o vídeo pausará e mostrará o modal.
+4. Se o aluno errar, receberá o feedback vermelho de erro. Acertando (verde), o vídeo o deixa continuar a assistir.
 
 ## Considerações Técnicas
-- As validações e proteções de rotas foram mantidas simples neste MVP para facilitar o uso local. Em um cenário real, tokens JWT verdadeiros seriam adicionados à área do aluno.
-- URLs de Vídeo: a aplicação usa um player `<video>` nativo do HTML5, garantindo que o tempo (`currentTime`) possa ser manipulado perfeitamente para bloquear saltos temporais de alunos. Para vídeos do YouTube, seria necessária a integração oficial da API de IFrames do Youtube.
+- As validações e proteções de rotas foram mantidas simples neste MVP (ex. tokens em localstorage).
+- As rotas PHP dentro de `api/admin` e `api/student` controlam permissão. 
+- O player previne atalhos de inspecionar elementos do browser para inibir downloads simples do vídeo.

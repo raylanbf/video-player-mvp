@@ -15,9 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $username = $input['username'] ?? '';
     $password = $input['password'] ?? '';
+    $role = $input['role'] ?? 'admin'; // Padrão admin se não enviado
     
     if (!$username || !$password) {
         sendJson(['success' => false, 'message' => 'Preencha todos os campos'], 400);
+    }
+    
+    if (!in_array($role, ['admin', 'superadmin'])) {
+        sendJson(['success' => false, 'message' => 'Tipo de conta inválido'], 400);
     }
     
     global $pdo;
@@ -29,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         sendJson(['success' => false, 'message' => 'Usuário já existe'], 400);
     }
 
-    $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'superadmin')");
-    $stmt->execute([$username, $password]);
+    $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+    $stmt->execute([$username, $password, $role]);
     
     sendJson(['success' => true, 'message' => 'Conta criada com sucesso! Faça Login.']);
 }

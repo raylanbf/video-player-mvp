@@ -84,6 +84,7 @@
             <div id="inst-form-view" class="card hidden">
                 <h2 id="inst-form-title">Cadastrar Instituição</h2>
                 <form id="inst-form">
+                    <input type="hidden" id="inst-id">
                     <div class="form-group">
                         <label>Nome da Instituição</label>
                         <input type="text" id="inst-nome" class="form-control" required>
@@ -102,10 +103,31 @@
                         <label>URL da Logomarca (opicional)</label>
                         <input type="url" id="inst-logo" class="form-control" placeholder="https://...">
                     </div>
+
+                    <!-- Campos de Acesso (Apenas para Criação) -->
+                    <div id="inst-credentials-section" style="border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <h4 style="margin-top:0; margin-bottom:10px;">Acesso do Administrador</h4>
+                        <div class="form-group">
+                            <label>Email / Usuário de Acesso</label>
+                            <input type="text" id="inst-admin-email" class="form-control" placeholder="admin@instituicao.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Senha Provisória</label>
+                            <input type="password" id="inst-admin-pass" class="form-control" placeholder="Senha Forte">
+                        </div>
+                    </div>
+
+                    <!-- Campos de Status (Apenas para Edição) -->
+                    <div id="inst-status-section" class="form-group hidden">
+                        <label>Status da Instituição</label>
+                        <select id="inst-status" class="form-control">
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
                     
                     <div id="inst-created-info" class="feedback-msg success hidden" style="margin-bottom: 1rem;">
-                        Instituição Criada! Conta Administrador gerada:<br>
-                        Usuário: <b id="new-admin-user"></b> <br>Senha: <b id="new-admin-pass"></b>
+                        Instituição atualizada/criada com sucesso!
                     </div>
 
                     <div>

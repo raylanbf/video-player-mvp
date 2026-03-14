@@ -2,10 +2,21 @@
 // /api/db.php
 // Configuração do Banco de Dados para Hostinger / cPanel
 
-$host = 'localhost';
-$db   = 'u366538509_bancoplayer1';
-$user = 'u366538509_bancoplayer';
-$pass = 'AMist01@92';
+$isLocal = in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1']) || strpos($_SERVER['HTTP_HOST'], 'localhost') !== false;
+
+if ($isLocal) {
+    // Configuração Local (XAMPP/WAMP/Laragon)
+    $host = 'localhost';
+    $db   = 'video_player_mvp'; // Altere se o nome do seu banco local for diferente
+    $user = 'root';
+    $pass = ''; // Senha geralmente é vazia localmente
+} else {
+    // Configuração Hostinger / Produção
+    $host = 'srv1603.hstgr.io';
+    $db   = 'u366538509_bancoplayer';
+    $user = 'u366538509_bancoplayer1';
+    $pass = 'AMist01@92';
+}
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

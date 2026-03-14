@@ -29,6 +29,20 @@ switch ($method) {
         $limite_v = $input['limite_videos'] ?? 10;
         $limite_p = $input['limite_perguntas'] ?? 50;
         $logo = $input['logo_url'] ?? '';
+        
+        $admin_email = $input['admin_email'] ?? '';
+        $admin_pass = $input['admin_pass'] ?? '';
+
+        if(empty($nome) || empty($admin_email) || empty($admin_pass)){
+            sendJson(['error' => 'Nome da Instituição, Email e Senha do Admin são obrigatórios!'], 400);
+        }
+
+        // Verify if username/email already exists BEFORE starting transaction
+        $stmt_check = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt_check->execute([$admin_email]);
+        if($stmt_check->fetch()){
+            sendJson(['error' => 'Já existe um usuário com este email/username no sistema.'], 400);
+        }
 
         $pdo->beginTransaction();
         try {
@@ -36,15 +50,12 @@ switch ($method) {
             $stmt->execute([$nome, $limite_v, $limite_p, $logo]);
             $instId = $pdo->lastInsertId();
 
-            // Create default admin user for this institution
-            $defaultUser = 'admin_' . $instId;
-            $pass = '123456';
-            
+            // Create admin user with custom provided credentials
             $stmtUser = $pdo->prepare("INSERT INTO users (username, password, role, instituicao_id) VALUES (?, ?, 'admin', ?)");
-            $stmtUser->execute([$defaultUser, $pass, $instId]);
+            $stmtUser->execute([$admin_email, $admin_pass, $instId]);
             
             $pdo->commit();
-            sendJson(['success' => true, 'instituicao_id' => $instId, 'admin_user' => $defaultUser, 'admin_pass' => $pass]);
+            sendJson(['success' => true, 'instituicao_id' => $instId]);
             
         } catch (\Exception $e) {
             $pdo->rollBack();
@@ -59,10 +70,17 @@ switch ($method) {
         
         if(!$id) sendJson(['error' => 'ID missing'], 400);
 
-        $stmt = $pdo->prepare("UPDATE instituicoes SET nome=?, limite_videos=?, limite_perguntas=?, status=? WHERE id=?");
-        $stmt->execute([$input['nome'], $input['limite_videos'], $input['limite_perguntas'], $input['status'], $id]);
+        $stmt = $pdo->prepare("UPDATE instituicoes SET nome=?, limite_videos=?, limite_perguntas=?, logo_url=?, status=? WHERE id=?");
+        $stmt->execute([
+            $input['nome'], 
+            $input['limite_videos'], 
+            $input['limite_perguntas'], 
+            $input['logo_url'] ?? '',
+            $input['status'] ?? 'ativo', 
+            $id
+        ]);
         
-        sendJson(['updated' => true]);
+        sendJson(['success' => true, 'updated' => true]);
         break;
 
     case 'DELETE':

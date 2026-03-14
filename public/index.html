@@ -17,6 +17,60 @@
             <hr style="width:100%; border:none; border-top:1px solid #ddd; margin: 15px 0;">
             <a href="/superadmin/index.html" style="color: #666; font-size: 0.9em; text-decoration: underline;">Acesso Master (Super Admin)</a>
         </div>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
+            <h2>Criar Conta</h2>
+            <form id="registerForm" style="display: flex; flex-direction: column; gap: 10px; max-width: 300px; margin: 0 auto;">
+                <input type="text" id="reg_username" placeholder="Usuário" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <input type="password" id="reg_password" placeholder="Senha" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="reg_role" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="admin">Administrador</option>
+                    <option value="superadmin">Super Admin</option>
+                </select>
+                <button type="submit" class="btn" id="reg_btn">Registrar</button>
+                <div id="reg_message" style="font-size: 0.9em; margin-top: 10px;"></div>
+            </form>
+        </div>
     </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('reg_btn');
+            const msg = document.getElementById('reg_message');
+            
+            const username = document.getElementById('reg_username').value;
+            const password = document.getElementById('reg_password').value;
+            const role = document.getElementById('reg_role').value;
+            
+            btn.disabled = true;
+            btn.innerText = 'Registrando...';
+            msg.innerText = '';
+            
+            try {
+                const res = await fetch('/api/register.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password, role})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    msg.style.color = 'green';
+                    msg.innerText = data.message;
+                    document.getElementById('registerForm').reset();
+                } else {
+                    msg.style.color = 'red';
+                    msg.innerText = data.message || 'Erro ao registrar.';
+                }
+            } catch (error) {
+                msg.style.color = 'red';
+                msg.innerText = 'Erro de rede ou servidor.';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Registrar';
+            }
+        });
+    </script>
 </body>
 </html>

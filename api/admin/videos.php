@@ -8,9 +8,20 @@ global $pdo;
 
 switch ($method) {
     case 'GET':
-        $stmt = $pdo->prepare("SELECT * FROM videos WHERE instituicao_id = ?");
-        $stmt->execute([$user['instituicao_id']]);
-        sendJson($stmt->fetchAll());
+        $id = $_GET['id'] ?? null;
+        if ($id) {
+            // Return single video for editing
+            $stmt = $pdo->prepare("SELECT * FROM videos WHERE id = ? AND instituicao_id = ?");
+            $stmt->execute([$id, $user['instituicao_id']]);
+            $video = $stmt->fetch();
+            if (!$video) sendJson(['error' => 'Video not found'], 404);
+            sendJson($video);
+        } else {
+            // Return all videos
+            $stmt = $pdo->prepare("SELECT * FROM videos WHERE instituicao_id = ?");
+            $stmt->execute([$user['instituicao_id']]);
+            sendJson($stmt->fetchAll());
+        }
         break;
 
     case 'POST':

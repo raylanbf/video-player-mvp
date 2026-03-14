@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // Roteador de Login - Simples POST para o arquivo
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && basename($_SERVER['SCRIPT_FILENAME']) === 'auth.php') {
     
     $inputJSON = file_get_contents('php://input');
     $input = json_decode($inputJSON, TRUE);

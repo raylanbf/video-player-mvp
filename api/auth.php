@@ -51,15 +51,7 @@ function checkAuth($requiredRole = null) {
     return $payload; // Retorna o user_id, role e instituicao_id
 }
 
-// CORS Headers para caso o frontend rode em domínio diferente no futuro
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-// Handle OPTIONS pre-flight
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
-}
+// ==========================================
 
 // Roteador de Login - Simples POST para o arquivo
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && basename($_SERVER['SCRIPT_FILENAME']) === 'auth.php') {

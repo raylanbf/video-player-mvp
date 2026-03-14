@@ -18,18 +18,21 @@ RewriteRule ^instituicoes$ superadmin/instituicoes.php [QSA,L]
 # ==========================================
 # ADMIN ROUTES
 # ==========================================
-RewriteRule ^videos/([0-9]+)/questions$ admin/questions.php?videoId=$1 [QSA,L]
-RewriteRule ^videos/([0-9]+)$ admin/videos.php?id=$1 [QSA,L]
-RewriteRule ^videos$ admin/videos.php [QSA,L]
+# Permite a API do admin sem precisar bater na pasta
+RewriteRule ^instituicao/logo\.php$ admin/instituicao_logo.php [QSA,L]
 
-RewriteRule ^questions/([0-9]+)$ admin/questions.php?id=$1 [QSA,L]
-RewriteRule ^questions$ admin/questions.php [QSA,L]
+RewriteRule ^videos/([0-9]+)/questions/?$ admin/questions.php?videoId=$1 [QSA,L]
+RewriteRule ^videos/([0-9]+)/?$ admin/videos.php?id=$1 [QSA,L]
+RewriteRule ^videos\.php$ admin/videos.php [QSA,L]
 
-RewriteRule ^cursos/([0-9]+)$ admin/cursos.php?id=$1 [QSA,L]
-RewriteRule ^cursos$ admin/cursos.php [QSA,L]
+RewriteRule ^questions/([0-9]+)/?$ admin/questions.php?id=$1 [QSA,L]
+RewriteRule ^questions\.php$ admin/questions.php [QSA,L]
 
-RewriteRule ^modulos/([0-9]+)$ admin/modulos.php?id=$1 [QSA,L]
-RewriteRule ^modulos$ admin/modulos.php [QSA,L]
+RewriteRule ^cursos/([0-9]+)/?$ admin/cursos.php?id=$1 [QSA,L]
+RewriteRule ^cursos\.php$ admin/cursos.php [QSA,L]
+
+RewriteRule ^modulos/([0-9]+)/?$ admin/modulos.php?id=$1 [QSA,L]
+RewriteRule ^modulos\.php$ admin/modulos.php [QSA,L]
 
 # ==========================================
 # STUDENT ROUTES
